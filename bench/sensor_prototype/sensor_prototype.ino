@@ -1,4 +1,5 @@
-// oled_demo.ino: bench.ino plus a 0.96in OLED readout, for the demo.
+// sensor_prototype.ino: our Sensor Prototype. Started from the template's
+// oled_demo.ino (bench.ino plus a 0.96in OLED readout).
 //
 // Same serial output as bench.ino ("cm 42.5" lines at 115200), so
 // sense-serial.js works unchanged. The screen is extra. On the two-colour
