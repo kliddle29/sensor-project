@@ -14,25 +14,26 @@
 //
 // Wiring, Arduino Nano:
 //   HC-SR04  VCC -> 5V    GND -> GND    TRIG -> D9    ECHO -> D10
-//   OLED 1   VCC -> 5V    GND -> GND    SDA  -> A4    SCL  -> A5   (distance)
-//   OLED 2   VCC -> 5V    GND -> GND    SDA  -> D2    SCL  -> D3   (breath)
+//   OLED 1   VCC -> 5V    GND -> GND    SDA  -> D12   SCL  -> D11  (distance)
+//   OLED 2   VCC -> 5V    GND -> GND    SDA  -> A1    SCL  -> A2   (breath)
 //   Soil     VCC -> 5V    GND -> GND    AOUT -> A0   (capacitive v2.0, our breath sensor)
 //   Buzzer   +   -> D4    -   -> GND
 //   LEDs     D5 -> 220 ohm -> blue long leg, D6 -> white, D7 -> red; short legs -> GND
 // The OLEDs are SSD1306, 128 x 64, I2C at 0x3C. Needs the U8g2 library.
 
 #include <U8g2lib.h>
-#include <Wire.h>
+
+// Both screens answer at 0x3C, so each gets its own bus. Both are software
+// I2C (the Nano's hardware bus is only on A4/A5), which cannot freeze on a
+// loose wire but is slower: a full frame on the first screen takes a while.
 
 // Page mode: draws the screen in eight strips with a 128-byte buffer, because
 // the Nano has 2 KB of RAM and a full frame would take half of it.
-U8G2_SSD1306_128X64_NONAME_1_HW_I2C oled(U8G2_R0, U8X8_PIN_NONE);
+U8G2_SSD1306_128X64_NONAME_1_SW_I2C oled(U8G2_R0, /* clock (SCL) = */ 11, /* data (SDA) = */ 12, U8X8_PIN_NONE);
 
-// The second screen. The Nano has one hardware I2C bus (A4/A5, taken by the
-// first screen), and both screens answer at 0x3C, so this one gets its own
-// software bus on D2/D3. Text-only U8x8 mode: no frame buffer, and it only
-// sends the lines we rewrite, so it barely slows the loop.
-U8X8_SSD1306_128X64_NONAME_SW_I2C breathScreen(/* clock (SCL) = */ 3, /* data (SDA) = */ 2, U8X8_PIN_NONE);
+// The second screen, on A1/A2 (used as digital pins). Text-only U8x8 mode:
+// no frame buffer, and it only sends the lines we rewrite, so it is quick.
+U8X8_SSD1306_128X64_NONAME_SW_I2C breathScreen(/* clock (SCL) = */ A2, /* data (SDA) = */ A1, U8X8_PIN_NONE);
 const unsigned long BREATH_SCREEN_MS = 250;  // redraw it four times a second
 unsigned long breathScreenAt = 0;
 
@@ -282,12 +283,7 @@ void setup() {
   pinMode(LED_WHITE, OUTPUT);
   pinMode(LED_RED, OUTPUT);
   tone(BUZZER, 2000, 150);       // startup beep: proves the buzzer is wired
-  // A loose OLED wire can freeze the I2C bus forever. The timeout gives up
-  // after 25 ms instead, so the sensors, LEDs and buzzer keep working.
-  Wire.begin();
-  Wire.setWireTimeout(25000, true);
   oled.begin();
-  oled.setBusClock(400000);
   Serial.println("oled ok");
   breathScreen.begin();
   breathScreen.setFont(u8x8_font_chroma48medium8_r);
