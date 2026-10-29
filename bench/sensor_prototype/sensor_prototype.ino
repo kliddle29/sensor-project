@@ -2,7 +2,7 @@
 // oled_demo.ino (bench.ino plus a 0.96in OLED readout).
 //
 // Prints "cm 42.5 moisture 512 breath 3" lines at 9600 for sense-serial.js.
-// The piece wants attention: breathe on the moisture sensor or stay close and
+// The piece wants attention: breathe on the moisture sensor and stay close and
 // it is chill. Walk away and stop breathing on it and three LEDs count down
 // (blue, white, red) and the beeper gets more intense. Come back and it calms down.
 //
@@ -46,7 +46,7 @@ const int LED_RED = 7;
 
 // ---- Tuning: change these from what the Serial Monitor shows, and log every
 // change in the README break log. ----------------------------------------------
-const float FADE_CM = 12.0;      // past this, with no breath: blue -> white
+const float FADE_CM = 12.0;      // past this, or with no breath: blue -> white
 const float WARN_CM = 50.0;      // past this: white -> red
 const float ALARM_CM = 150.0;    // past this: red -> alarm (the browser's "present" line)
 const int BREATH_DELTA = 30;     // how far "breath" must rise to count as a breath
@@ -129,10 +129,11 @@ void calibrateBreath() {
 }
 
 void updateLevel(float cm, unsigned long now) {
-  // Breath or closeness keeps it chill. Otherwise the further away, the worse.
+  // Only breath AND closeness together keep it chill (and silent). Missing
+  // either one is at least FADING; past that, the further away, the worse.
   bool breathedRecently = now - lastBreath < BREATH_GRACE_MS;
   uint8_t next;
-  if (breathedRecently || cm < FADE_CM) next = CHILL;
+  if (breathedRecently && cm < FADE_CM) next = CHILL;
   else if (cm < WARN_CM) next = FADING;
   else if (cm < ALARM_CM) next = WARN;
   else {
