@@ -45,7 +45,7 @@ Flash `bench/bench.ino` for the sensor alone. Open `bench.html` on localhost in 
 
 ### The screen (optional)
 
-`bench/oled_demo/oled_demo.ino` is `bench.ino` plus a readout on a 0.96 in SSD1306 screen (128 x 64, I2C): a state badge, the distance in big digits, a sonar sweep with a dot at the measured range, and a scrolling trace of the history. It prints the same lines over USB, so `bench.html` works with it unchanged. It needs the **U8g2** library (Arduino IDE → Library Manager). On the two-colour screens the top strip is yellow and holds the status.
+`bench/sensor_prototype/sensor_prototype.ino` (started from the template's `oled_demo.ino`) is `bench.ino` plus a readout on a 0.96 in SSD1306 screen (128 x 64, I2C): a state badge, the distance in big digits, a sonar sweep with a dot at the measured range, and a scrolling trace of the history. It prints the same lines over USB, so `bench.html` works with it unchanged. It needs the **U8g2** library (Arduino IDE → Library Manager). On the two-colour screens the top strip is yellow and holds the status.
 
 ![Three photos of the screen side by side: EMPTY reading 400 cm with no echo, HERE at 51.5 cm, NEAR at 7.2 cm with a large dot on the sonar.](img/screen-states.jpg)
 

@@ -8,7 +8,7 @@
 // (bench/bench.ino). Web Serial needs Chrome or Edge, and a page on localhost or
 // https. Nothing is saved: each line is read and dropped.
 
-const BAUD = 115200; // must match Serial.begin() in the sketch
+const BAUD = 9600; // must match Serial.begin() in the sketch
 
 const button = document.querySelector('#start');
 const readout = document.querySelector('#readout');
