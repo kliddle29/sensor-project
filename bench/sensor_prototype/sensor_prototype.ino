@@ -2,7 +2,7 @@
 // oled_demo.ino (bench.ino plus a 0.96in OLED readout).
 //
 // Prints "cm 42.5 moisture 512 breath 3" lines at 9600 for sense-serial.js.
-// The piece wants attention: breathe on the moisture sensor or stay close and
+// The piece wants attention: breathe on the moisture sensor and stay close and
 // it is chill. Walk away and stop breathing on it and three LEDs count down
 // (blue, white, red) and the beeper gets more intense. Come back and it calms down.
 //
@@ -14,25 +14,26 @@
 //
 // Wiring, Arduino Nano:
 //   HC-SR04  VCC -> 5V    GND -> GND    TRIG -> D9    ECHO -> D10
-//   OLED 1   VCC -> 5V    GND -> GND    SDA  -> A4    SCL  -> A5   (distance)
-//   OLED 2   VCC -> 5V    GND -> GND    SDA  -> D2    SCL  -> D3   (breath)
+//   OLED 1   VCC -> 5V    GND -> GND    SDA  -> D12   SCL  -> D11  (distance)
+//   OLED 2   VCC -> 5V    GND -> GND    SDA  -> A1    SCL  -> A2   (breath)
 //   Soil     VCC -> 5V    GND -> GND    AOUT -> A0   (capacitive v2.0, our breath sensor)
 //   Buzzer   +   -> D4    -   -> GND
 //   LEDs     D5 -> 220 ohm -> blue long leg, D6 -> white, D7 -> red; short legs -> GND
 // The OLEDs are SSD1306, 128 x 64, I2C at 0x3C. Needs the U8g2 library.
 
 #include <U8g2lib.h>
-#include <Wire.h>
+
+// Both screens answer at 0x3C, so each gets its own bus. Both are software
+// I2C (the Nano's hardware bus is only on A4/A5), which cannot freeze on a
+// loose wire but is slower: a full frame on the first screen takes a while.
 
 // Page mode: draws the screen in eight strips with a 128-byte buffer, because
 // the Nano has 2 KB of RAM and a full frame would take half of it.
-U8G2_SSD1306_128X64_NONAME_1_HW_I2C oled(U8G2_R0, U8X8_PIN_NONE);
+U8G2_SSD1306_128X64_NONAME_1_SW_I2C oled(U8G2_R0, /* clock (SCL) = */ 11, /* data (SDA) = */ 12, U8X8_PIN_NONE);
 
-// The second screen. The Nano has one hardware I2C bus (A4/A5, taken by the
-// first screen), and both screens answer at 0x3C, so this one gets its own
-// software bus on D2/D3. Text-only U8x8 mode: no frame buffer, and it only
-// sends the lines we rewrite, so it barely slows the loop.
-U8X8_SSD1306_128X64_NONAME_SW_I2C breathScreen(/* clock (SCL) = */ 3, /* data (SDA) = */ 2, U8X8_PIN_NONE);
+// The second screen, on A1/A2 (used as digital pins). Text-only U8x8 mode:
+// no frame buffer, and it only sends the lines we rewrite, so it is quick.
+U8X8_SSD1306_128X64_NONAME_SW_I2C breathScreen(/* clock (SCL) = */ A2, /* data (SDA) = */ A1, U8X8_PIN_NONE);
 const unsigned long BREATH_SCREEN_MS = 250;  // redraw it four times a second
 unsigned long breathScreenAt = 0;
 
@@ -46,10 +47,10 @@ const int LED_RED = 7;
 
 // ---- Tuning: change these from what the Serial Monitor shows, and log every
 // change in the README break log. ----------------------------------------------
-const float FADE_CM = 12.0;      // past this, with no breath: blue -> white
+const float FADE_CM = 12.0;      // past this, or with no breath: blue -> white
 const float WARN_CM = 50.0;      // past this: white -> red
 const float ALARM_CM = 150.0;    // past this: red -> alarm (the browser's "present" line)
-const int BREATH_DELTA = 30;     // how far "breath" must rise to count as a breath
+const int BREATH_DELTA = 25;     // how far "breath" must rise to count as a breath
 const unsigned long BREATH_GRACE_MS = 5000;  // one breath keeps it chill this long
 const unsigned long ALARM_HOLD_MS = 1000;    // must stay past ALARM_CM this long first
 const unsigned long ALARM_MAX_MS = 60000;    // buzzer gives up after this (0 = never)
@@ -129,10 +130,11 @@ void calibrateBreath() {
 }
 
 void updateLevel(float cm, unsigned long now) {
-  // Breath or closeness keeps it chill. Otherwise the further away, the worse.
+  // Only breath AND closeness together keep it chill (and silent). Missing
+  // either one is at least FADING; past that, the further away, the worse.
   bool breathedRecently = now - lastBreath < BREATH_GRACE_MS;
   uint8_t next;
-  if (breathedRecently || cm < FADE_CM) next = CHILL;
+  if (breathedRecently && cm < FADE_CM) next = CHILL;
   else if (cm < WARN_CM) next = FADING;
   else if (cm < ALARM_CM) next = WARN;
   else {
@@ -281,12 +283,7 @@ void setup() {
   pinMode(LED_WHITE, OUTPUT);
   pinMode(LED_RED, OUTPUT);
   tone(BUZZER, 2000, 150);       // startup beep: proves the buzzer is wired
-  // A loose OLED wire can freeze the I2C bus forever. The timeout gives up
-  // after 25 ms instead, so the sensors, LEDs and buzzer keep working.
-  Wire.begin();
-  Wire.setWireTimeout(25000, true);
   oled.begin();
-  oled.setBusClock(400000);
   Serial.println("oled ok");
   breathScreen.begin();
   breathScreen.setFont(u8x8_font_chroma48medium8_r);
