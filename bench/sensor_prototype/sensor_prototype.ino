@@ -50,7 +50,7 @@ const int LED_RED = 7;
 const float FADE_CM = 12.0;      // past this, or with no breath: blue -> white
 const float WARN_CM = 50.0;      // past this: white -> red
 const float ALARM_CM = 150.0;    // past this: red -> alarm (the browser's "present" line)
-const int BREATH_DELTA = 30;     // how far "breath" must rise to count as a breath
+const int BREATH_DELTA = 25;     // how far "breath" must rise to count as a breath
 const unsigned long BREATH_GRACE_MS = 5000;  // one breath keeps it chill this long
 const unsigned long ALARM_HOLD_MS = 1000;    // must stay past ALARM_CM this long first
 const unsigned long ALARM_MAX_MS = 60000;    // buzzer gives up after this (0 = never)
