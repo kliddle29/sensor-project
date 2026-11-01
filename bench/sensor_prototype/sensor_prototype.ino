@@ -19,7 +19,8 @@
 //   Soil     VCC -> 5V    GND -> GND    AOUT -> A0   (capacitive v2.0, our breath sensor)
 //   Buzzer   +   -> D4    -   -> GND
 //   LEDs     D5 -> 220 ohm -> blue long leg, D6 -> white, D7 -> red; short legs -> GND
-// The OLEDs are SSD1306, 128 x 64, I2C at 0x3C. Needs the U8g2 library.
+// The OLEDs are SSD1306, 128 x 64, I2C at 0x3C (screen 2 is also found at
+// 0x3D). Needs the U8g2 library.
 
 #include <U8g2lib.h>
 
@@ -33,7 +34,9 @@ U8G2_SSD1306_128X64_NONAME_1_SW_I2C oled(U8G2_R0, /* clock (SCL) = */ 11, /* dat
 
 // The second screen, on A1/A2 (used as digital pins). Text-only U8x8 mode:
 // no frame buffer, and it only sends the lines we rewrite, so it is quick.
-U8X8_SSD1306_128X64_NONAME_SW_I2C breathScreen(/* clock (SCL) = */ A2, /* data (SDA) = */ A1, U8X8_PIN_NONE);
+const uint8_t BREATH_SCL = A2;
+const uint8_t BREATH_SDA = A1;
+U8X8_SSD1306_128X64_NONAME_SW_I2C breathScreen(BREATH_SCL, BREATH_SDA, U8X8_PIN_NONE);
 const unsigned long BREATH_SCREEN_MS = 250;  // redraw it four times a second
 unsigned long breathScreenAt = 0;
 
@@ -273,6 +276,48 @@ void drawBreathScreen(int moisture, int breath, unsigned long now) {
   breathScreen.drawString(0, 7, breathing ? "BREATHING       " : "no breath       ");
 }
 
+// U8x8 sends to a screen without checking that anything heard it, so a screen
+// on the wrong pins or at the wrong address just stays dark while the sketch
+// carries on. This asks by hand: the screen's address, then a look at whether
+// it pulls SDA low to answer. I2C lines are pulled low or let go, never driven
+// high; the pull-up lifts a line that is let go.
+void i2cLine(uint8_t pin, bool high) {
+  if (high) {
+    pinMode(pin, INPUT_PULLUP);
+  } else {
+    digitalWrite(pin, LOW);      // pull-up off first, so the pin never drives high
+    pinMode(pin, OUTPUT);
+  }
+  delayMicroseconds(5);
+}
+
+bool screenAnswers(uint8_t scl, uint8_t sda, uint8_t address) {
+  // A reset can catch the screen halfway through a byte, holding SDA low.
+  // Nine clocks walk it to the end of that byte.
+  i2cLine(sda, true);
+  for (uint8_t i = 0; i < 9; i++) {
+    i2cLine(scl, false);
+    i2cLine(scl, true);
+  }
+  i2cLine(sda, false);           // start: SDA falls while SCL is high
+  i2cLine(scl, false);
+  uint8_t b = address << 1;      // the address, then 0 for "write"
+  for (uint8_t i = 0; i < 8; i++) {
+    i2cLine(sda, b & 0x80);
+    i2cLine(scl, true);
+    i2cLine(scl, false);
+    b <<= 1;
+  }
+  i2cLine(sda, true);            // let go of SDA so the screen can answer
+  i2cLine(scl, true);
+  bool answered = digitalRead(sda) == LOW;
+  i2cLine(scl, false);
+  i2cLine(sda, false);           // stop: SDA rises while SCL is high
+  i2cLine(scl, true);
+  i2cLine(sda, true);
+  return answered;
+}
+
 void setup() {
   Serial.begin(9600);            // sense-serial.js opens the port at this speed
   Serial.println("boot");        // checkpoints: the last one printed shows where it stopped
@@ -285,11 +330,20 @@ void setup() {
   tone(BUZZER, 2000, 150);       // startup beep: proves the buzzer is wired
   oled.begin();
   Serial.println("oled ok");
+  // Most of these screens answer at 0x3C; a resistor on the back moves some
+  // to 0x3D.
+  if (screenAnswers(BREATH_SCL, BREATH_SDA, 0x3C)) {
+    Serial.println("screen 2 ok");
+  } else if (screenAnswers(BREATH_SCL, BREATH_SDA, 0x3D)) {
+    breathScreen.setI2CAddress(0x3D * 2);  // U8x8 takes it shifted left one bit
+    Serial.println("screen 2 ok at 0x3D");
+  } else {
+    Serial.println("screen 2 not answering: check SDA -> A1, SCL -> A2, VCC, GND");
+  }
   breathScreen.begin();
   breathScreen.setFont(u8x8_font_chroma48medium8_r);
   breathScreen.drawString(0, 0, "BREATH");
   breathScreen.drawString(0, 7, "hands off...");
-  Serial.println("screen 2 ok");
   splash();
   calibrateBreath();
   lastBreath = millis();         // start chill, with the usual grace period
