@@ -65,6 +65,6 @@ Nothing saves a frame or a landmark list. The model downloads once when you clic
 The instrument is MediaPipe Face Landmarker, pinned to version 1.1.1, the same one the Make a Face lab used.
 
 ## Credits 
-- Kenzo Liddle- HC-WR04 (Near)
-- Bryson England- HC-WR04 (present)
+- Kenzo Liddle- HC-SR04 (Near)
+- Bryson England- HC-SR04 (present)
 -Live: https://github.com/kliddle29/sensor-project.git
