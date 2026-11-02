@@ -19,7 +19,7 @@ const int TRIG = 9;
 const int ECHO = 10;
 
 void setup() {
-  Serial.begin(115200);          // sense-serial.js opens the port at this speed
+  Serial.begin(9600);          // sense-serial.js opens the port at this speed
   pinMode(TRIG, OUTPUT);
   pinMode(ECHO, INPUT);
 }
