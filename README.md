@@ -64,6 +64,14 @@ Nothing saves a frame or a landmark list. The model downloads once when you clic
 
 The instrument is MediaPipe Face Landmarker, pinned to version 1.1.1, the same one the Make a Face lab used.
 
+## State Table
+
+Rows are checked top to bottom, and the first one true for its whole hold wins.
+
+| Name | Readings at the edge | LINE | GAP | Hold | Visitor learns it by | Piece does | For them / To them | Owner |
+|---|---|---|---|---|---|---|---|---|
+| nobody | ___, ___, ___ cm (empty table, read today) | 150 | 10 | 5 s | the screen goes blank but for one blinking dot | D5, D6, D7 off; buzzer silent; OLED blank but for a dot every 5 s | For them: it rests instead of shouting at an empty room. To them: it can't tell someone who left from someone standing quietly just past 150 cm. | @kliddle29 @BrysonAI30 |
+
 ## Credits 
 - Kenzo Liddle- HC-SR04 (Near)
 - Bryson England- HC-SR04 (present)
