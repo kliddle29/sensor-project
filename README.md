@@ -70,7 +70,7 @@ Rows are checked top to bottom, and the first one true for its whole hold wins.
 
 | Name | Readings at the edge | LINE | GAP | Hold | Visitor learns it by | Piece does | For them / To them | Owner |
 |---|---|---|---|---|---|---|---|---|
-| devoted | 24, 25, 27 breath | 25 | 3 | 3 s | the word DEVOTED on the OLED, with the blue LED | D5 blue steady; buzzer silent; OLED prints DEVOTED | For them: it goes calm and quiet the moment you give it your breath. To them: it only counts breath, so someone with asthma or in a mask can never be devoted. | @BrysonAI30 |
+| devoted | 24, 25, 27 breath | 18 | 3 | 3 s | the word DEVOTED on the OLED, with the blue LED | D5 blue steady; buzzer silent; OLED prints DEVOTED | For them: it goes calm and quiet the moment you give it your breath. To them: it only counts breath, so someone with asthma or in a mask can never be devoted. | @BrysonAI30 |
 | deserter | 49, 48, 46 cm | 50 | 5 | 2 s | the word DESERTER on the OLED, with the red LED flashing and the siren | D7 red flashes; D4 siren speeds up; OLED prints DESERTER | For them: it tells you, out loud, that it noticed you drifting. To them: it calls stepping back to talk to a friend desertion, and sirens at you for it. | @kliddle29 |
 | nobody | 213.9, 214.8, 213.2 cm (empty table, Nov 2, before the rewire) | 150 | 10 | 5 s | the screen goes blank but for one blinking dot | D5, D6, D7 off; buzzer silent; OLED blank but for a dot every 5 s | For them: it rests instead of shouting at an empty room. To them: it can't tell someone who left from someone standing quietly just past 150 cm. | @kliddle29 @BrysonAI30 |
 
