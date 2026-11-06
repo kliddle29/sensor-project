@@ -11,7 +11,7 @@
 
 | Name | Rule | Hold |
 |---|---|---|
-| devoted | `breath` over 25 | 3 s |
+| devoted | `breath` over 18 | 3 s |
 | deserter | `cm` 50 to 150 | 2 s |
 | nobody | `cm` over 150 | 5 s |
 
