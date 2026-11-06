@@ -1,7 +1,8 @@
 // sensor_prototype.ino: our Sensor Prototype. Started from the template's
 // oled_demo.ino (bench.ino plus a 0.96in OLED readout).
 //
-// Prints "cm 42.5 moisture 512 breath 3" lines at 9600 for sense-serial.js.
+// Prints "cm 42.5 ping 42.5 moisture 512 breath 3" lines at 9600 for
+// sense-serial.js: cm is the cleaned-up distance, ping the raw one (0 = no echo).
 // The piece wants attention: breathe on the moisture sensor and stay close and
 // it is chill. Walk away and stop breathing on it and three LEDs count down
 // (blue, white, red) and the beeper gets more intense. Come back and it calms down.
@@ -15,7 +16,7 @@
 //   OLED     VCC -> 5V    GND -> GND    SDA  -> A4    SCL  -> A5
 //   Soil     VCC -> 5V    GND -> GND    AOUT -> A0   (capacitive v2.0, our breath sensor)
 //   Buzzer   +   -> D4    -   -> GND
-//   LEDs     D5 -> 220 ohm -> blue long leg, D6 -> white, D7 -> red; short legs -> GND
+//   LEDs     D5 -> 5k ohm -> blue long leg, D6 -> white, D7 -> red; short legs -> GND
 // The OLED is an SSD1306, 128 x 64, I2C at 0x3C. Needs the U8g2 library.
 
 #include <U8g2lib.h>
@@ -57,6 +58,17 @@ const uint8_t ALARM = 3;
 uint8_t level = CHILL;
 
 float smooth = 200.0;            // the distance, smoothed; starts far away
+
+// Cleaning up the distance (filterCm). A ping that hears no echo is a miss,
+// not a reading of 400 cm: misses only count as "nothing there" once there
+// are MISSES_FOR_FAR in a row.
+const float FAR_CM = 400.0;      // what "nothing there" counts as
+const uint8_t MISSES_FOR_FAR = 5;  // about 0.8 s of misses at 6 pings a second
+float recent[3];                 // the last three real readings, for the median
+uint8_t recentNext = 0;
+uint8_t recentCount = 0;
+uint8_t misses = 0;              // no-echo pings in a row
+float held = FAR_CM;             // the last cleaned-up distance
 uint8_t rate = 0;                // readings in the last second, for the header
 uint8_t count = 0;
 unsigned long rateStart = 0;
@@ -71,13 +83,39 @@ bool sirenHigh = false;
 unsigned long lastBeep = 0;      // when the last warning beep started; 0 = beep now
 
 float readCm() {
+  // Some HC-SR04s hold ECHO high for a while after a ping that heard nothing,
+  // and ignore a new trigger until it drops, so one miss turns into many.
+  // Wait for ECHO to go low first.
+  unsigned long waitStart = micros();
+  while (digitalRead(ECHO) == HIGH && micros() - waitStart < 60000) {}
   digitalWrite(TRIG, LOW);
   delayMicroseconds(2);
   digitalWrite(TRIG, HIGH);
   delayMicroseconds(10);
   digitalWrite(TRIG, LOW);
   unsigned long us = pulseIn(ECHO, HIGH, 30000);
-  return us ? us / 58.0 : 400.0;
+  return us ? us / 58.0 : 0;      // 0 = no echo
+}
+
+float median3(float a, float b, float c) {
+  return max(min(a, b), min(max(a, b), c));
+}
+
+float filterCm(float raw) {
+  // A miss, or a reading past the sensor's range, keeps the last distance until
+  // there are MISSES_FOR_FAR in a row. Real readings go through a median of the
+  // last three, which drops a single wild one.
+  if (raw <= 0 || raw > FAR_CM) {
+    if (misses < 255) misses++;
+    if (misses >= MISSES_FOR_FAR) held = FAR_CM;
+    return held;
+  }
+  misses = 0;
+  recent[recentNext] = raw;
+  recentNext = (recentNext + 1) % 3;
+  if (recentCount < 3) recentCount++;
+  held = recentCount < 3 ? raw : median3(recent[0], recent[1], recent[2]);
+  return held;
 }
 
 void splash() {
@@ -249,7 +287,8 @@ void setup() {
 
 void loop() {
   unsigned long now = millis();
-  float cm = readCm();
+  float ping = readCm();
+  float cm = filterCm(ping);
 
   // Breath makes the sensor read lower (damper), so "breath" is how far below
   // its baseline it sits. The baseline follows slow drift, like the room's
@@ -262,13 +301,15 @@ void loop() {
 
   Serial.print("cm ");
   Serial.print(cm, 1);
+  Serial.print(" ping ");
+  Serial.print(ping, 1);
   Serial.print(" moisture ");
   Serial.print(moisture);
   Serial.print(" breath ");
   Serial.print(breath);
   Serial.println();
 
-  smooth += (min(cm, 400.0f) - smooth) * 0.35;
+  smooth += (cm - smooth) * 0.35;
 
   updateLevel(smooth, now);
   updateOutputs(now);
