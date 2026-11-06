@@ -1,44 +1,30 @@
 // sensor_prototype.ino: our Sensor Prototype. Started from the template's
 // oled_demo.ino (bench.ino plus a 0.96in OLED readout).
 //
-// Prints "cm 42.5 moisture 512 breath 3" lines at 9600 for sense-serial.js.
+// Prints "cm 42.5 ping 42.5 moisture 512 breath 3" lines at 9600 for
+// sense-serial.js: cm is the cleaned-up distance, ping the raw one (0 = no echo).
 // The piece wants attention: breathe on the moisture sensor and stay close and
 // it is chill. Walk away and stop breathing on it and three LEDs count down
 // (blue, white, red) and the beeper gets more intense. Come back and it calms down.
 //
-// Two screens. The first is the ultrasonic's: on the two-colour panels the top
-// 16 rows are yellow: that strip is the status (level badge, readings per
-// second). The blue below is the data: the distance, a sonar ping whose blip
-// sits at the measured range, and a scrolling trace of the history. The second
-// is the moisture sensor's: the breath number, big, and whether it counts.
+// One screen. On the two-colour panels the top 16 rows are yellow: that strip
+// is the status (level badge, readings per second). The blue below is the data:
+// the distance, big, then the breath number and whether it counts.
 //
 // Wiring, Arduino Nano:
 //   HC-SR04  VCC -> 5V    GND -> GND    TRIG -> D9    ECHO -> D10
-//   OLED 1   VCC -> 5V    GND -> GND    SDA  -> D12   SCL  -> D11  (distance)
-//   OLED 2   VCC -> 5V    GND -> GND    SDA  -> A1    SCL  -> A2   (breath)
+//   OLED     VCC -> 5V    GND -> GND    SDA  -> A4    SCL  -> A5
 //   Soil     VCC -> 5V    GND -> GND    AOUT -> A0   (capacitive v2.0, our breath sensor)
 //   Buzzer   +   -> D4    -   -> GND
-//   LEDs     D5 -> 220 ohm -> blue long leg, D6 -> white, D7 -> red; short legs -> GND
-// The OLEDs are SSD1306, 128 x 64, I2C at 0x3C (screen 2 is also found at
-// 0x3D). Needs the U8g2 library.
+//   LEDs     D5 -> 5k ohm -> blue long leg, D6 -> white, D7 -> red; short legs -> GND
+// The OLED is an SSD1306, 128 x 64, I2C at 0x3C. Needs the U8g2 library.
 
 #include <U8g2lib.h>
-
-// Both screens answer at 0x3C, so each gets its own bus. Both are software
-// I2C (the Nano's hardware bus is only on A4/A5), which cannot freeze on a
-// loose wire but is slower: a full frame on the first screen takes a while.
+#include <Wire.h>
 
 // Page mode: draws the screen in eight strips with a 128-byte buffer, because
 // the Nano has 2 KB of RAM and a full frame would take half of it.
-U8G2_SSD1306_128X64_NONAME_1_SW_I2C oled(U8G2_R0, /* clock (SCL) = */ 11, /* data (SDA) = */ 12, U8X8_PIN_NONE);
-
-// The second screen, on A1/A2 (used as digital pins). Text-only U8x8 mode:
-// no frame buffer, and it only sends the lines we rewrite, so it is quick.
-const uint8_t BREATH_SCL = A2;
-const uint8_t BREATH_SDA = A1;
-U8X8_SSD1306_128X64_NONAME_SW_I2C breathScreen(BREATH_SCL, BREATH_SDA, U8X8_PIN_NONE);
-const unsigned long BREATH_SCREEN_MS = 250;  // redraw it four times a second
-unsigned long breathScreenAt = 0;
+U8G2_SSD1306_128X64_NONAME_1_HW_I2C oled(U8G2_R0, U8X8_PIN_NONE);
 
 const int TRIG = 9;
 const int ECHO = 10;
@@ -71,17 +57,18 @@ const uint8_t WARN = 2;
 const uint8_t ALARM = 3;
 uint8_t level = CHILL;
 
-const float NEAR_CM = 30.0;      // blip size on the sonar, screen only
-const float MAX_CM = 200.0;      // top of the graph and the sonar range
+float smooth = 200.0;            // the distance, smoothed; starts far away
 
-const int GRAPH_H = 10;          // the trace, rows 53 to 63
-uint8_t hist[128];               // one column per reading, 0..GRAPH_H
-uint8_t head = 0;
-
-float smooth = MAX_CM;
-float sweep = 0;                 // sonar sweep angle, degrees
-int sweepDir = 1;
-uint8_t ping = 0;                // expanding ring radius
+// Cleaning up the distance (filterCm). A ping that hears no echo is a miss,
+// not a reading of 400 cm: misses only count as "nothing there" once there
+// are MISSES_FOR_FAR in a row.
+const float FAR_CM = 400.0;      // what "nothing there" counts as
+const uint8_t MISSES_FOR_FAR = 5;  // about 0.8 s of misses at 6 pings a second
+float recent[3];                 // the last three real readings, for the median
+uint8_t recentNext = 0;
+uint8_t recentCount = 0;
+uint8_t misses = 0;              // no-echo pings in a row
+float held = FAR_CM;             // the last cleaned-up distance
 uint8_t rate = 0;                // readings in the last second, for the header
 uint8_t count = 0;
 unsigned long rateStart = 0;
@@ -96,13 +83,39 @@ bool sirenHigh = false;
 unsigned long lastBeep = 0;      // when the last warning beep started; 0 = beep now
 
 float readCm() {
+  // Some HC-SR04s hold ECHO high for a while after a ping that heard nothing,
+  // and ignore a new trigger until it drops, so one miss turns into many.
+  // Wait for ECHO to go low first.
+  unsigned long waitStart = micros();
+  while (digitalRead(ECHO) == HIGH && micros() - waitStart < 60000) {}
   digitalWrite(TRIG, LOW);
   delayMicroseconds(2);
   digitalWrite(TRIG, HIGH);
   delayMicroseconds(10);
   digitalWrite(TRIG, LOW);
   unsigned long us = pulseIn(ECHO, HIGH, 30000);
-  return us ? us / 58.0 : 400.0;
+  return us ? us / 58.0 : 0;      // 0 = no echo
+}
+
+float median3(float a, float b, float c) {
+  return max(min(a, b), min(max(a, b), c));
+}
+
+float filterCm(float raw) {
+  // A miss, or a reading past the sensor's range, keeps the last distance until
+  // there are MISSES_FOR_FAR in a row. Real readings go through a median of the
+  // last three, which drops a single wild one.
+  if (raw <= 0 || raw > FAR_CM) {
+    if (misses < 255) misses++;
+    if (misses >= MISSES_FOR_FAR) held = FAR_CM;
+    return held;
+  }
+  misses = 0;
+  recent[recentNext] = raw;
+  recentNext = (recentNext + 1) % 3;
+  if (recentCount < 3) recentCount++;
+  held = recentCount < 3 ? raw : median3(recent[0], recent[1], recent[2]);
+  return held;
 }
 
 void splash() {
@@ -123,6 +136,11 @@ void calibrateBreath() {
   digitalWrite(LED_BLUE, HIGH);
   digitalWrite(LED_WHITE, HIGH);
   digitalWrite(LED_RED, HIGH);
+  oled.firstPage();
+  do {
+    oled.setFont(u8g2_font_6x12_tr);
+    oled.drawStr(28, 36, "hands off...");
+  } while (oled.nextPage());
   long sum = 0;
   for (int i = 0; i < 50; i++) {
     sum += analogRead(MOISTURE);
@@ -213,7 +231,7 @@ void drawHeader() {
   int rw = oled.getStrWidth(buf);
   oled.drawStr(127 - rw, 10, buf);
   // a pulse that blinks once per reading, beside the rate
-  if (head & 1) oled.drawDisc(127 - rw - 6, 7, 2);
+  if (count & 1) oled.drawDisc(127 - rw - 6, 7, 2);
   else oled.drawCircle(127 - rw - 6, 7, 2);
 }
 
@@ -226,96 +244,22 @@ void drawNumber(float cm) {
   } else {
     dtostrf(cm, 0, cm < 100 ? 1 : 0, buf);
   }
-  oled.drawStr(0, 45, buf);
+  oled.drawStr(0, 40, buf);
   int x = oled.getStrWidth(buf) + 2;
   oled.setFont(u8g2_font_5x8_tr);
-  oled.drawStr(x, 45, "cm");
+  oled.drawStr(x, 40, "cm");
 }
 
-void drawSonar(float cm) {
-  const int ox = 99, oy = 50, R = 28;
-  // range rings and the frame of the fan
-  oled.drawCircle(ox, oy, R / 3, U8G2_DRAW_UPPER_LEFT | U8G2_DRAW_UPPER_RIGHT);
-  oled.drawCircle(ox, oy, 2 * R / 3, U8G2_DRAW_UPPER_LEFT | U8G2_DRAW_UPPER_RIGHT);
-  oled.drawCircle(ox, oy, R, U8G2_DRAW_UPPER_LEFT | U8G2_DRAW_UPPER_RIGHT);
-  // the outgoing ping
-  if (ping < R) oled.drawCircle(ox, oy, ping, U8G2_DRAW_UPPER_LEFT | U8G2_DRAW_UPPER_RIGHT);
-  // the sweep line
-  float a = (sweep - 90) * DEG_TO_RAD;
-  oled.drawLine(ox, oy, ox + R * cos(a), oy + R * sin(a));
-  // the blip, at the measured range along the sweep
-  if (cm < MAX_CM) {
-    float r = cm / MAX_CM * R;
-    int bx = ox + r * cos(a), by = oy + r * sin(a);
-    oled.drawDisc(bx, by, cm < NEAR_CM ? 3 : 2);
-  }
-}
-
-void drawGraph() {
-  // A trace, oldest at the left: a line reads cleaner than solid bars, on the
-  // panel and in a photo of it.
-  const int y0 = 63;
-  for (uint8_t x = 1; x < 128; x++) {
-    uint8_t a = hist[(head + x - 1) % 128];
-    uint8_t b = hist[(head + x) % 128];
-    oled.drawLine(x - 1, y0 - a, x, y0 - b);
-  }
-}
-
-void drawBreathScreen(int moisture, int breath, unsigned long now) {
-  // Text mode writes over what was there, so every line is padded with spaces
-  // to cover the old, longer value. 16 characters fill a line.
-  char buf[17];
-  breathScreen.setFont(u8x8_font_chroma48medium8_r);
-  breathScreen.drawString(0, 0, "BREATH");
-  snprintf(buf, sizeof buf, "%4d", breath);
-  breathScreen.draw2x2String(0, 2, buf);     // rows 2-3, big
-  snprintf(buf, sizeof buf, "raw %4d need>%-2d", moisture, BREATH_DELTA);
-  breathScreen.drawString(0, 5, buf);
-  bool breathing = now - lastBreath < BREATH_GRACE_MS;
-  breathScreen.drawString(0, 7, breathing ? "BREATHING       " : "no breath       ");
-}
-
-// U8x8 sends to a screen without checking that anything heard it, so a screen
-// on the wrong pins or at the wrong address just stays dark while the sketch
-// carries on. This asks by hand: the screen's address, then a look at whether
-// it pulls SDA low to answer. I2C lines are pulled low or let go, never driven
-// high; the pull-up lifts a line that is let go.
-void i2cLine(uint8_t pin, bool high) {
-  if (high) {
-    pinMode(pin, INPUT_PULLUP);
-  } else {
-    digitalWrite(pin, LOW);      // pull-up off first, so the pin never drives high
-    pinMode(pin, OUTPUT);
-  }
-  delayMicroseconds(5);
-}
-
-bool screenAnswers(uint8_t scl, uint8_t sda, uint8_t address) {
-  // A reset can catch the screen halfway through a byte, holding SDA low.
-  // Nine clocks walk it to the end of that byte.
-  i2cLine(sda, true);
-  for (uint8_t i = 0; i < 9; i++) {
-    i2cLine(scl, false);
-    i2cLine(scl, true);
-  }
-  i2cLine(sda, false);           // start: SDA falls while SCL is high
-  i2cLine(scl, false);
-  uint8_t b = address << 1;      // the address, then 0 for "write"
-  for (uint8_t i = 0; i < 8; i++) {
-    i2cLine(sda, b & 0x80);
-    i2cLine(scl, true);
-    i2cLine(scl, false);
-    b <<= 1;
-  }
-  i2cLine(sda, true);            // let go of SDA so the screen can answer
-  i2cLine(scl, true);
-  bool answered = digitalRead(sda) == LOW;
-  i2cLine(scl, false);
-  i2cLine(sda, false);           // stop: SDA rises while SCL is high
-  i2cLine(scl, true);
-  i2cLine(sda, true);
-  return answered;
+void drawBreath(int moisture, int breath, unsigned long now) {
+  // The two bottom rows: the breath number against what it needs, the raw
+  // reading, and whether a breath still counts.
+  char buf[22];
+  oled.setFont(u8g2_font_6x12_tr);
+  snprintf(buf, sizeof buf, "breath %d / %d", breath, BREATH_DELTA);
+  oled.drawStr(0, 52, buf);
+  oled.drawStr(0, 63, now - lastBreath < BREATH_GRACE_MS ? "BREATHING" : "no breath");
+  snprintf(buf, sizeof buf, "raw %d", moisture);
+  oled.drawStr(127 - oled.getStrWidth(buf), 63, buf);
 }
 
 void setup() {
@@ -328,22 +272,13 @@ void setup() {
   pinMode(LED_WHITE, OUTPUT);
   pinMode(LED_RED, OUTPUT);
   tone(BUZZER, 2000, 150);       // startup beep: proves the buzzer is wired
+  // A loose OLED wire can freeze the I2C bus forever. The timeout gives up
+  // after 25 ms instead, so the sensors, LEDs and buzzer keep working.
+  Wire.begin();
+  Wire.setWireTimeout(25000, true);
   oled.begin();
+  oled.setBusClock(400000);
   Serial.println("oled ok");
-  // Most of these screens answer at 0x3C; a resistor on the back moves some
-  // to 0x3D.
-  if (screenAnswers(BREATH_SCL, BREATH_SDA, 0x3C)) {
-    Serial.println("screen 2 ok");
-  } else if (screenAnswers(BREATH_SCL, BREATH_SDA, 0x3D)) {
-    breathScreen.setI2CAddress(0x3D * 2);  // U8x8 takes it shifted left one bit
-    Serial.println("screen 2 ok at 0x3D");
-  } else {
-    Serial.println("screen 2 not answering: check SDA -> A1, SCL -> A2, VCC, GND");
-  }
-  breathScreen.begin();
-  breathScreen.setFont(u8x8_font_chroma48medium8_r);
-  breathScreen.drawString(0, 0, "BREATH");
-  breathScreen.drawString(0, 7, "hands off...");
   splash();
   calibrateBreath();
   lastBreath = millis();         // start chill, with the usual grace period
@@ -352,7 +287,8 @@ void setup() {
 
 void loop() {
   unsigned long now = millis();
-  float cm = readCm();
+  float ping = readCm();
+  float cm = filterCm(ping);
 
   // Breath makes the sensor read lower (damper), so "breath" is how far below
   // its baseline it sits. The baseline follows slow drift, like the room's
@@ -365,21 +301,18 @@ void loop() {
 
   Serial.print("cm ");
   Serial.print(cm, 1);
+  Serial.print(" ping ");
+  Serial.print(ping, 1);
   Serial.print(" moisture ");
   Serial.print(moisture);
   Serial.print(" breath ");
   Serial.print(breath);
   Serial.println();
 
-  smooth += (min(cm, 400.0f) - smooth) * 0.35;
+  smooth += (cm - smooth) * 0.35;
 
   updateLevel(smooth, now);
   updateOutputs(now);
-
-  if (now - breathScreenAt >= BREATH_SCREEN_MS) {
-    drawBreathScreen(moisture, breath, now);
-    breathScreenAt = now;
-  }
 
   count++;
   if (millis() - rateStart >= 1000) {
@@ -388,20 +321,10 @@ void loop() {
     rateStart = millis();
   }
 
-  // closer reads taller in the graph
-  float c = constrain(smooth, 0, MAX_CM);
-  hist[head] = (uint8_t)((1.0 - c / MAX_CM) * GRAPH_H);
-  head = (head + 1) % 128;
-
-  sweep += 6 * sweepDir;
-  if (sweep > 60 || sweep < -60) sweepDir = -sweepDir;
-  ping = (ping + 3) % 36;
-
   oled.firstPage();
   do {
     drawHeader();
     drawNumber(smooth);
-    drawSonar(smooth);
-    drawGraph();
+    drawBreath(moisture, breath, now);
   } while (oled.nextPage());
 }
