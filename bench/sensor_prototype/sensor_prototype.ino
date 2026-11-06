@@ -3,9 +3,10 @@
 //
 // Prints "cm 42.5 ping 42.5 moisture 512 breath 3" lines at 9600 for
 // sense-serial.js: cm is the cleaned-up distance, ping the raw one (0 = no echo).
-// The piece wants attention: breathe on the moisture sensor and stay close and
-// it is chill. Walk away and stop breathing on it and three LEDs count down
-// (blue, white, red) and the beeper gets more intense. Come back and it calms down.
+// The piece names you with the charter's words. Close and breathing on the
+// probe: DEVOTED, blue LED, silent. Close but not breathing, or drifting off:
+// DESERTER, white LED and a slow beep, then from 50 cm a flashing red LED and
+// a siren that speeds up. Past 150 cm for 5 s: NOBODY, everything quiet.
 //
 // One screen. On the two-colour panels the top 16 rows are yellow: that strip
 // is the status (level badge, readings per second). The blue below is the data:
@@ -37,20 +38,20 @@ const int LED_RED = 7;
 // ---- Tuning: change these from what the Serial Monitor shows, and log every
 // change in the README break log. ----------------------------------------------
 const float FADE_CM = 12.0;      // past this, or with no breath: blue -> white
-const float WARN_CM = 50.0;      // past this: white -> red
-const float ALARM_CM = 150.0;    // past this: red -> alarm (the browser's "present" line)
+const float WARN_CM = 50.0;      // past this: white -> red, and the siren starts
+const float ALARM_CM = 150.0;    // past this: nobody (the browser's "present" line)
 const int BREATH_DELTA = 18;     // how far "breath" must rise to count as a breath
 const unsigned long BREATH_GRACE_MS = 5000;  // one breath keeps it chill this long
-const unsigned long ALARM_HOLD_MS = 1000;    // must stay past ALARM_CM this long first
-const unsigned long ALARM_MAX_MS = 60000;    // buzzer gives up after this (0 = never)
-// The warning beeps before the alarm: white is slow and low, red is fast and high.
+const unsigned long ALARM_HOLD_MS = 5000;    // must stay past ALARM_CM this long first (the charter's 5 s)
+const unsigned long ALARM_MAX_MS = 60000;    // the siren gives up after this (0 = never)
+// White's warning beep, before the siren.
 const unsigned long FADE_BEEP_MS = 2000;     // white: one beep this often
 const int FADE_BEEP_HZ = 1200;
-const unsigned long WARN_BEEP_MS = 700;      // red: one beep this often
-const int WARN_BEEP_HZ = 2200;
 
-// The four levels, worst last. Plain numbers rather than an enum, because the
-// Arduino IDE's auto-generated prototypes can trip over enums.
+// The four levels. Plain numbers rather than an enum, because the Arduino IDE's
+// auto-generated prototypes can trip over enums. The screen shows each one by
+// its charter name: CHILL is DEVOTED, FADING and WARN are DESERTER, ALARM is
+// NOBODY.
 const uint8_t CHILL = 0;
 const uint8_t FADING = 1;
 const uint8_t WARN = 2;
@@ -166,40 +167,37 @@ void updateLevel(float cm, unsigned long now) {
   if (cm < ALARM_CM) farSince = 0;
 
   if (next == level) return;
-  if (next == ALARM) {
+  if (level == WARN) noTone(BUZZER);
+  if (next == WARN) {
     alarmSince = now;
     sirenStep = 0;
   }
-  if (level == ALARM) {
-    noTone(BUZZER);
-    tone(BUZZER, 2500, 60);      // they came back: one short chirp
-  }
+  if (level == ALARM) tone(BUZZER, 2500, 60);  // someone arrived: one short chirp
   lastBeep = 0;                  // a new level beeps straight away
   level = next;
 }
 
 void updateOutputs(unsigned long now) {
-  bool blink = (now / 400) % 2;  // slow blink: the warning
-  bool flash = (now / 150) % 2;  // fast flash: the alarm
-  digitalWrite(LED_BLUE, level == CHILL || (level == ALARM && flash));
-  digitalWrite(LED_WHITE, level == FADING || (level == ALARM && flash));
-  digitalWrite(LED_RED, (level == WARN && blink) || (level == ALARM && !flash));
+  bool flash = (now / 150) % 2;  // fast flash: the siren
+  digitalWrite(LED_BLUE, level == CHILL);
+  digitalWrite(LED_WHITE, level == FADING);
+  digitalWrite(LED_RED, level == WARN && flash);
 
-  // White and red beep before the alarm, so the sound steps up with the LEDs.
-  if (level == FADING || level == WARN) {
-    unsigned long every = level == FADING ? FADE_BEEP_MS : WARN_BEEP_MS;
-    if (lastBeep == 0 || now - lastBeep >= every) {
-      tone(BUZZER, level == FADING ? FADE_BEEP_HZ : WARN_BEEP_HZ, 80);
+  // White beeps slowly before the siren.
+  if (level == FADING) {
+    if (lastBeep == 0 || now - lastBeep >= FADE_BEEP_MS) {
+      tone(BUZZER, FADE_BEEP_HZ, 80);
       lastBeep = now;
     }
     return;
   }
-  if (level != ALARM) return;
+  // DEVOTED and NOBODY are silent; only the red level sirens.
+  if (level != WARN) return;
   if (ALARM_MAX_MS != 0 && now - alarmSince >= ALARM_MAX_MS) {
-    noTone(BUZZER);              // gave up; the LEDs keep flashing
+    noTone(BUZZER);              // gave up; the red LED keeps flashing
     return;
   }
-  // A two-tone siren that speeds up the longer they stay away: each pitch
+  // A two-tone siren that speeds up the longer they stay a deserter: each pitch
   // lasts 300 ms at first, down to 60 ms after 12 seconds.
   unsigned long step = 300 - min(now - alarmSince, 12000UL) / 50;
   if (sirenStep == 0 || now - sirenStep >= step) {
@@ -211,11 +209,11 @@ void updateOutputs(unsigned long now) {
 
 void drawHeader() {
   // Rows 0-15, the yellow strip: level badge left, readings per second right.
-  const char *labels[] = {"CHILL", "FADING", "WARN", "ALARM"};
+  const char *labels[] = {"DEVOTED", "DESERTER", "DESERTER", "NOBODY"};
   const char *label = labels[level];
   oled.setFont(u8g2_font_6x12_tr);
   int w = oled.getStrWidth(label) + 8;
-  if (level >= WARN) {             // warn and alarm: solid badge
+  if (level == WARN) {             // the siren level: solid badge
     oled.drawRBox(0, 1, w, 13, 3);
     oled.setDrawColor(0);
     oled.drawStr(4, 11, label);
