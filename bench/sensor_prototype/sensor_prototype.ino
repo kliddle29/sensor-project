@@ -222,8 +222,9 @@ void updateOutputs(unsigned long now) {
 
 void drawName(float cm, int breath, unsigned long now) {
   if (name == NOBODY) {
-    // Blank but for one dot that blinks every 5 s: it waits.
-    if ((now - nameSince) % 5000 < 300) oled.drawDisc(64, 32, 3);
+    // Blank but for one dot that blinks every 5 s: it waits. The dot is big and
+    // stays lit for most of a second, so the screen doesn't look broken.
+    if ((now - nameSince) % 5000 < 800) oled.drawDisc(64, 32, 6);
     return;
   }
   const char *word = name == DEVOTED ? "DEVOTED" : "DESERTER";
