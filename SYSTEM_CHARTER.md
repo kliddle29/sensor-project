@@ -4,8 +4,8 @@
 
 | Reading | What it reads |
 |---|---|
-| `cm` | nobody: 169 (empty table) · no echo prints 400 · leaning in: 10, 12, 14 |
-| `breath` | nobody: 4–7 (idle noise) · a light breath: about 25 · a hard breath: 30+ |
+| `cm` | nobody: 213.9, 214.8, 213.2 (empty table, Nov 2) · no echo prints 400 · leaning in: 10, 12, 14 |
+| `breath` | nobody: 4–7 (idle noise) · a light breath: 19–23 · a hard breath: 30+ |
 
 ## It calls you
 
