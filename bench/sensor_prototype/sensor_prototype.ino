@@ -42,6 +42,8 @@ const float FADE_CM = 12.0;      // past this, or with no breath: blue -> white
 const float WARN_CM = 50.0;      // past this: white -> red, and the siren starts
 const float ALARM_CM = 150.0;    // past this: nobody (the browser's "present" line)
 const int BREATH_DELTA = 18;     // how far "breath" must rise to count as a breath
+const int BREATH_GAP = 3;        // once over the line, breath may dip this far and still count
+const unsigned long BREATH_HOLD_MS = 3000;   // breath must stay up this long to count (the charter's 3 s)
 const unsigned long BREATH_GRACE_MS = 5000;  // one breath keeps it chill this long
 const unsigned long WARN_HOLD_MS = 2000;     // must stay 50-150 cm this long before the siren (the charter's 2 s)
 const unsigned long ALARM_HOLD_MS = 5000;    // must stay past ALARM_CM this long first (the charter's 5 s)
@@ -81,6 +83,8 @@ float moistSmooth = 0;           // the moisture reading, smoothed
 float baseline = 0;              // what the sensor reads with nobody breathing on it
 unsigned long lastBreath = 0;    // millis() of the last breath
 bool breathedYet = false;        // no breath has counted since startup
+bool breathUp = false;           // breath is over the line right now
+unsigned long breathUpSince = 0; // when it went over
 uint8_t candidate = 255;         // the level waiting out its hold; 255 = none yet
 unsigned long candidateSince = 0;
 unsigned long alarmSince = 0;    // when the alarm started
@@ -311,9 +315,19 @@ void loop() {
   moistSmooth += (moisture - moistSmooth) * 0.3;
   baseline += (moistSmooth - baseline) * 0.001;
   int breath = (int)(baseline - moistSmooth);
-  if (breath > BREATH_DELTA) {
-    lastBreath = now;
-    breathedYet = true;
+  // A breath only counts once it has stayed over the line for BREATH_HOLD_MS,
+  // so a short puff doesn't. The GAP lets it dip a little between breaths.
+  if (breath > BREATH_DELTA - (breathUp ? BREATH_GAP : 0)) {
+    if (!breathUp) {
+      breathUp = true;
+      breathUpSince = now;
+    }
+    if (now - breathUpSince >= BREATH_HOLD_MS) {
+      lastBreath = now;
+      breathedYet = true;
+    }
+  } else {
+    breathUp = false;
   }
 
   smooth += (cm - smooth) * 0.35;
