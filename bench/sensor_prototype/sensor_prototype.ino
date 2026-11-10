@@ -262,15 +262,13 @@ void drawBreath(int moisture, int breath, unsigned long now) {
   // reading, and whether a breath still counts.
   char buf[22];
   oled.setFont(u8g2_font_6x12_tr);
-  // A bar that fills as breath climbs toward the line, with the line marked.
-  int fill = constrain(breath, 0, BREATH_DELTA * 2) * 80 / (BREATH_DELTA * 2);
-  oled.drawFrame(0, 44, 82, 8);
-  oled.drawBox(1, 45, fill, 6);
-  oled.drawVLine(41, 42, 12);      // the breath line sits halfway
-  oled.drawStr(88, 52, "breath");
+  snprintf(buf, sizeof buf, "breath %d / %d", breath, BREATH_DELTA);
+  oled.drawStr(0, 52, buf);
   oled.drawStr(0, 63, breathingNow(now) ? "BREATHING" : "no breath");
-  snprintf(buf, sizeof buf, "raw %d", moisture);
-  oled.drawStr(127 - oled.getStrWidth(buf), 63, buf);
+  // A bar for the distance, 0 to 200 cm, in place of the raw reading.
+  int d = constrain((int)smooth, 0, 200) * 56 / 200;
+  oled.drawFrame(70, 56, 58, 7);
+  oled.drawBox(71, 57, d, 5);
 }
 
 void setup() {
