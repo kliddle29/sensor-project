@@ -143,7 +143,10 @@ What broke, and what we changed because of it. Threshold changes go here too.
 | 2026-11-06 | `895784d` | That screen went blank most of the time; breath 25 was too hard to reach | Brought back the one-OLED screen; breath line 25 → 18 |
 | 2026-11-06 | `1d2d7ff` | The screen said CHILL / WARN, not the charter's names, and nobody sirened | Badge shows DEVOTED / DESERTER / NOBODY; nobody is quiet; only red flashes during the siren |
 
-## Credits 
-- Kenzo Liddle- HC-SR04 (Near)
-- Bryson England- HC-SR04 (present)
--Live: https://github.com/kliddle29/sensor-project.git
+## Credits
+
+- **Kenzo Liddle** (@kliddle29): the `near` signal and the **deserter** name; the charter's first draft and `design.jpg`
+- **Bryson England** (@BrysonAI30): the `present` signal and the **devoted** name; the breath probe, OLED and LED wiring
+- **Both:** the **nobody** name, the State Table and the hand-drawn `design-wiring.jpg`
+- Started from the class's `sensor-layer-starter` template; the OLED sketch began as its `oled_demo.ino`
+- Repo: https://github.com/kliddle29/sensor-project
