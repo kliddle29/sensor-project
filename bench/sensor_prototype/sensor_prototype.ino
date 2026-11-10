@@ -222,15 +222,10 @@ void drawHeader() {
   const char *label = labels[level];
   oled.setFont(u8g2_font_6x12_tr);
   int w = oled.getStrWidth(label) + 8;
-  if (level == WARN) {             // the siren level: solid badge
-    oled.drawRBox(0, 1, w, 13, 3);
-    oled.setDrawColor(0);
-    oled.drawStr(4, 11, label);
-    oled.setDrawColor(1);
-  } else {
-    oled.drawRFrame(0, 1, w, 13, 3);
-    oled.drawStr(4, 11, label);
-  }
+  // A solid bar across the whole yellow strip, the name cut out of it.
+  oled.drawBox(0, 0, 128, 14);
+  oled.setDrawColor(0);
+  oled.drawStr(4, 11, label);
   char buf[8];
   oled.setFont(u8g2_font_5x8_tr);
   itoa(rate, buf, 10);
@@ -240,11 +235,12 @@ void drawHeader() {
   // a pulse that blinks once per reading, beside the rate
   if (count & 1) oled.drawDisc(127 - rw - 6, 7, 2);
   else oled.drawCircle(127 - rw - 6, 7, 2);
+  oled.setDrawColor(1);
 }
 
 void drawNumber(float cm) {
   char buf[8];
-  oled.setFont(u8g2_font_logisoso16_tn);
+  oled.setFont(u8g2_font_logisoso22_tn);
   // The smoothed value creeps toward 400 (no echo) but never reaches it.
   if (cm >= 399.0) {
     strcpy(buf, "---");
