@@ -64,6 +64,30 @@ Nothing saves a frame or a landmark list. The model downloads once when you clic
 
 The instrument is MediaPipe Face Landmarker, pinned to version 1.1.1, the same one the Make a Face lab used.
 
+## Our build: Don't Leave
+
+An Arduino Nano with an HC-SR04 ultrasonic sensor, a capacitive moisture sensor used as a breath probe, one 0.96 in OLED, a buzzer and three LEDs. The sketch is `bench/sensor_prototype/sensor_prototype.ino`.
+
+### Wiring
+
+| Part | Pin | Nano |
+|---|---|---|
+| HC-SR04 | VCC / GND | 5V / GND |
+| | TRIG | D9 |
+| | ECHO | D10 |
+| OLED (SSD1306, I2C) | VCC / GND | 5V / GND |
+| | SDA | A4 |
+| | SCL | A5 |
+| Breath probe (capacitive moisture v2.0) | VCC / GND | **5V** / GND (it reads 0 on 3.3 V) |
+| | AOUT | A0 |
+| Buzzer | + / − | D4 / GND |
+| Blue LED | long leg through a resistor | D5 |
+| White LED | long leg through a resistor | D6 |
+| Red LED | long leg through a resistor | D7 |
+| LEDs | short legs | GND |
+
+Keep RX0, TX1 and RST empty: a wire there stops uploads. The hand-drawn version is `design-wiring.jpg` (its buzzer + and − are swapped; the table is right).
+
 ## State Table
 
 Rows are checked top to bottom, and the first one true for its whole hold wins.
