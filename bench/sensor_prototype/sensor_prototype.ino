@@ -218,6 +218,7 @@ void updateOutputs(unsigned long now) {
 
 void drawHeader() {
   // Rows 0-15, the yellow strip: level badge left, readings per second right.
+  oled.drawFrame(0, 0, 128, 64);   // a border around the whole screen
   const char *labels[] = {"DEVOTED", "DESERTER", "DESERTER", "NOBODY"};
   const char *label = labels[level];
   oled.setFont(u8g2_font_6x12_tr);
@@ -249,12 +250,12 @@ void drawNumber(float cm) {
   if (cm >= 399.0) {
     strcpy(buf, "---");
   } else {
-    dtostrf(cm / 100.0, 0, 2, buf);
+    dtostrf(cm, 0, cm < 100 ? 1 : 0, buf);
   }
   oled.drawStr(0, 40, buf);
   int x = oled.getStrWidth(buf) + 2;
   oled.setFont(u8g2_font_5x8_tr);
-  oled.drawStr(x, 40, "m");
+  oled.drawStr(x, 40, "cm");
 }
 
 void drawBreath(int moisture, int breath, unsigned long now) {
