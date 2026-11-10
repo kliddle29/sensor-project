@@ -12,12 +12,13 @@
 // Keep "nobody" last, so it catches everything the other rows miss.
 
 window.TABLE = {
-  // The HC-SR04 example. Replace these with your own signals and rows.
-  signals: ['present', 'near'],
+  // Don't Leave, the same names as the Nano and SYSTEM_CHARTER.md.
+  // near > 0.98 is under about 12 cm; breath > 0.5 is the Nano's line of 18.
+  signals: ['present', 'near', 'breath'],
 
   states: [
-    { name: 'close',  when: s => s.near > 0.85,   hold: 0.5 },
-    { name: 'here',   when: s => s.present > 0.5, hold: 1 },
-    { name: 'nobody', when: s => s.present < 0.2, hold: 2 },
+    { name: 'devoted',  when: s => s.near > 0.98 && s.breath > 0.5, hold: 3 },
+    { name: 'deserter', when: s => s.present > 0.5,                 hold: 2 },
+    { name: 'nobody',   when: s => s.present < 0.2,                 hold: 5 },
   ],
 };

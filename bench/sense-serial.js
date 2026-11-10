@@ -25,8 +25,9 @@ const SIGNALS = {
   // echo does not count as somebody leaving.
   present: r => (r.cm !== undefined && r.cm < 150 ? 1 : 0),
 
-  // Your signal goes here. A photoresistor printed as "light":
-  //   shade: r => (r.light === undefined ? 0 : clamp(1 - r.light / 1023)),
+  // breath: how far the probe's reading sits below its baseline, from the
+  // sketch's "breath" number. 0.5 is the Nano's line of 18; 1 is 36 or more.
+  breath: r => (r.breath === undefined ? 0 : clamp(r.breath / 36)),
 };
 
 function clamp(x) {
