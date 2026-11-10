@@ -218,7 +218,6 @@ void updateOutputs(unsigned long now) {
 
 void drawHeader() {
   // Rows 0-15, the yellow strip: level badge left, readings per second right.
-  oled.drawFrame(0, 0, 128, 64);   // a border around the whole screen
   const char *labels[] = {"DEVOTED", "DESERTER", "DESERTER", "NOBODY"};
   const char *label = labels[level];
   oled.setFont(u8g2_font_6x12_tr);
@@ -232,15 +231,6 @@ void drawHeader() {
     oled.drawRFrame(0, 1, w, 13, 3);
     oled.drawStr(4, 11, label);
   }
-  char buf[8];
-  oled.setFont(u8g2_font_5x8_tr);
-  itoa(rate, buf, 10);
-  strcat(buf, "/s");
-  int rw = oled.getStrWidth(buf);
-  oled.drawStr(127 - rw, 10, buf);
-  // a pulse that blinks once per reading, beside the rate
-  if (count & 1) oled.drawDisc(127 - rw - 6, 7, 2);
-  else oled.drawCircle(127 - rw - 6, 7, 2);
 }
 
 void drawNumber(float cm) {
