@@ -43,6 +43,7 @@ const float WARN_CM = 50.0;      // past this: white -> red, and the siren start
 const float ALARM_CM = 150.0;    // past this: nobody (the browser's "present" line)
 const int BREATH_DELTA = 18;     // how far "breath" must rise to count as a breath
 const unsigned long BREATH_GRACE_MS = 5000;  // one breath keeps it chill this long
+const unsigned long WARN_HOLD_MS = 2000;     // must stay 50-150 cm this long before the siren (the charter's 2 s)
 const unsigned long ALARM_HOLD_MS = 5000;    // must stay past ALARM_CM this long first (the charter's 5 s)
 const unsigned long ALARM_MAX_MS = 60000;    // the siren gives up after this (0 = never)
 // White's warning beep, before the siren.
@@ -80,7 +81,8 @@ float moistSmooth = 0;           // the moisture reading, smoothed
 float baseline = 0;              // what the sensor reads with nobody breathing on it
 unsigned long lastBreath = 0;    // millis() of the last breath
 bool breathedYet = false;        // no breath has counted since startup
-unsigned long farSince = 0;      // when they went past ALARM_CM; 0 = not past it
+uint8_t candidate = 255;         // the level waiting out its hold; 255 = none yet
+unsigned long candidateSince = 0;
 unsigned long alarmSince = 0;    // when the alarm started
 unsigned long sirenStep = 0;     // when the siren last changed pitch
 bool sirenHigh = false;
@@ -164,16 +166,22 @@ void updateLevel(float cm, unsigned long now) {
   // Only breath AND closeness together keep it chill (and silent). Missing
   // either one is at least FADING; past that, the further away, the worse.
   bool breathedRecently = breathingNow(now);
-  uint8_t next;
-  if (breathedRecently && cm < FADE_CM) next = CHILL;
-  else if (cm < WARN_CM) next = FADING;
-  else if (cm < ALARM_CM) next = WARN;
-  else {
-    // One bad echo can read as far away, so wait ALARM_HOLD_MS before the alarm.
-    if (farSince == 0) farSince = now;
-    next = now - farSince >= ALARM_HOLD_MS ? ALARM : WARN;
+  uint8_t want;
+  if (breathedRecently && cm < FADE_CM) want = CHILL;
+  else if (cm < WARN_CM) want = FADING;
+  else if (cm < ALARM_CM) want = WARN;
+  else want = ALARM;
+
+  // The siren level and nobody each have to hold before the name changes
+  // (2 s and 5 s, from the charter), so walking past doesn't set off the
+  // siren and one bad echo doesn't read as nobody. Until then it keeps the
+  // name it has.
+  if (want != candidate) {
+    candidate = want;
+    candidateSince = now;
   }
-  if (cm < ALARM_CM) farSince = 0;
+  unsigned long hold = want == WARN ? WARN_HOLD_MS : want == ALARM ? ALARM_HOLD_MS : 0;
+  uint8_t next = now - candidateSince >= hold ? want : level;
 
   if (next == level) return;
   if (level == WARN) noTone(BUZZER);
