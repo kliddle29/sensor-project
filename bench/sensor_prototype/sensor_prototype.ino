@@ -217,29 +217,29 @@ void updateOutputs(unsigned long now) {
 }
 
 void drawHeader() {
-  // Rows 0-15, the yellow strip: level badge left, readings per second right.
+  // Rows 0-15, the yellow strip: readings per second left, level badge right.
   const char *labels[] = {"DEVOTED", "DESERTER", "DESERTER", "NOBODY"};
   const char *label = labels[level];
   oled.setFont(u8g2_font_6x12_tr);
   int w = oled.getStrWidth(label) + 8;
+  int bx = 127 - w;
   if (level == WARN) {             // the siren level: solid badge
-    oled.drawRBox(0, 1, w, 13, 3);
+    oled.drawRBox(bx, 1, w, 13, 3);
     oled.setDrawColor(0);
-    oled.drawStr(4, 11, label);
+    oled.drawStr(bx + 4, 11, label);
     oled.setDrawColor(1);
   } else {
-    oled.drawRFrame(0, 1, w, 13, 3);
-    oled.drawStr(4, 11, label);
+    oled.drawRFrame(bx, 1, w, 13, 3);
+    oled.drawStr(bx + 4, 11, label);
   }
   char buf[8];
   oled.setFont(u8g2_font_5x8_tr);
   itoa(rate, buf, 10);
   strcat(buf, "/s");
-  int rw = oled.getStrWidth(buf);
-  oled.drawStr(127 - rw, 10, buf);
+  oled.drawStr(10, 10, buf);
   // a pulse that blinks once per reading, beside the rate
-  if (count & 1) oled.drawDisc(127 - rw - 6, 7, 2);
-  else oled.drawCircle(127 - rw - 6, 7, 2);
+  if (count & 1) oled.drawDisc(4, 7, 2);
+  else oled.drawCircle(4, 7, 2);
 }
 
 void drawNumber(float cm) {
@@ -251,10 +251,8 @@ void drawNumber(float cm) {
   } else {
     dtostrf(cm, 0, cm < 100 ? 1 : 0, buf);
   }
-  int nw = oled.getStrWidth(buf);
-  int x0 = (128 - nw - 12) / 2;  // centred, leaving room for "cm"
-  oled.drawStr(x0, 40, buf);
-  int x = x0 + nw + 2;
+  oled.drawStr(0, 40, buf);
+  int x = oled.getStrWidth(buf) + 2;
   oled.setFont(u8g2_font_5x8_tr);
   oled.drawStr(x, 40, "cm");
 }
