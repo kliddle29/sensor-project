@@ -79,11 +79,18 @@ unsigned long rateStart = 0;
 float moistSmooth = 0;           // the moisture reading, smoothed
 float baseline = 0;              // what the sensor reads with nobody breathing on it
 unsigned long lastBreath = 0;    // millis() of the last breath
+bool breathedYet = false;        // no breath has counted since startup
 unsigned long farSince = 0;      // when they went past ALARM_CM; 0 = not past it
 unsigned long alarmSince = 0;    // when the alarm started
 unsigned long sirenStep = 0;     // when the siren last changed pitch
 bool sirenHigh = false;
 unsigned long lastBeep = 0;      // when the last warning beep started; 0 = beep now
+
+bool breathingNow(unsigned long now) {
+  // A breath counts for BREATH_GRACE_MS after it, but only a real one: right
+  // after startup nobody has breathed yet.
+  return breathedYet && now - lastBreath < BREATH_GRACE_MS;
+}
 
 float readCm() {
   // Some HC-SR04s hold ECHO high for a while after a ping that heard nothing,
@@ -156,7 +163,7 @@ void calibrateBreath() {
 void updateLevel(float cm, unsigned long now) {
   // Only breath AND closeness together keep it chill (and silent). Missing
   // either one is at least FADING; past that, the further away, the worse.
-  bool breathedRecently = now - lastBreath < BREATH_GRACE_MS;
+  bool breathedRecently = breathingNow(now);
   uint8_t next;
   if (breathedRecently && cm < FADE_CM) next = CHILL;
   else if (cm < WARN_CM) next = FADING;
@@ -257,7 +264,7 @@ void drawBreath(int moisture, int breath, unsigned long now) {
   oled.setFont(u8g2_font_6x12_tr);
   snprintf(buf, sizeof buf, "breath %d / %d", breath, BREATH_DELTA);
   oled.drawStr(0, 52, buf);
-  oled.drawStr(0, 63, now - lastBreath < BREATH_GRACE_MS ? "BREATHING" : "no breath");
+  oled.drawStr(0, 63, breathingNow(now) ? "BREATHING" : "no breath");
   snprintf(buf, sizeof buf, "raw %d", moisture);
   oled.drawStr(127 - oled.getStrWidth(buf), 63, buf);
 }
@@ -281,7 +288,6 @@ void setup() {
   Serial.println("oled ok");
   splash();
   calibrateBreath();
-  lastBreath = millis();         // start chill, with the usual grace period
   Serial.println("ready");
 }
 
@@ -297,8 +303,17 @@ void loop() {
   moistSmooth += (moisture - moistSmooth) * 0.3;
   baseline += (moistSmooth - baseline) * 0.001;
   int breath = (int)(baseline - moistSmooth);
-  if (breath > BREATH_DELTA) lastBreath = now;
+  if (breath > BREATH_DELTA) {
+    lastBreath = now;
+    breathedYet = true;
+  }
 
+  smooth += (cm - smooth) * 0.35;
+
+  updateLevel(smooth, now);
+  updateOutputs(now);
+
+  // Printed after updateLevel, so the name is the one this reading earned.
   Serial.print("cm ");
   Serial.print(cm, 1);
   Serial.print(" ping ");
@@ -310,11 +325,6 @@ void loop() {
   Serial.print(" name ");
   Serial.print(NAMES[level]);
   Serial.println();
-
-  smooth += (cm - smooth) * 0.35;
-
-  updateLevel(smooth, now);
-  updateOutputs(now);
 
   count++;
   if (millis() - rateStart >= 1000) {
