@@ -251,8 +251,10 @@ void drawNumber(float cm) {
   } else {
     dtostrf(cm, 0, cm < 100 ? 1 : 0, buf);
   }
-  oled.drawStr(0, 40, buf);
-  int x = oled.getStrWidth(buf) + 2;
+  int nw = oled.getStrWidth(buf);
+  int x0 = (128 - nw - 12) / 2;  // centred, leaving room for "cm"
+  oled.drawStr(x0, 40, buf);
+  int x = x0 + nw + 2;
   oled.setFont(u8g2_font_5x8_tr);
   oled.drawStr(x, 40, "cm");
 }
