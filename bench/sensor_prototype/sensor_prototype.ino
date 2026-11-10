@@ -1,8 +1,9 @@
 // sensor_prototype.ino: our Sensor Prototype. Started from the template's
 // oled_demo.ino (bench.ino plus a 0.96in OLED readout).
 //
-// Prints "cm 42.5 ping 42.5 moisture 512 breath 3" lines at 9600 for
-// sense-serial.js: cm is the cleaned-up distance, ping the raw one (0 = no echo).
+// Prints "cm 42.5 ping 42.5 moisture 512 breath 3 name deserter" lines at 9600
+// for sense-serial.js: cm is the cleaned-up distance, ping the raw one (0 = no
+// echo), name what the screen calls you right now.
 // The piece names you with the charter's words. Close and breathing on the
 // probe: DEVOTED, blue LED, silent. Close but not breathing, or drifting off:
 // DESERTER, white LED and a slow beep, then from 50 cm a flashing red LED and
@@ -57,6 +58,7 @@ const uint8_t FADING = 1;
 const uint8_t WARN = 2;
 const uint8_t ALARM = 3;
 uint8_t level = CHILL;
+const char *NAMES[] = {"devoted", "deserter", "deserter", "nobody"};  // for the serial line, same order as the badge
 
 float smooth = 200.0;            // the distance, smoothed; starts far away
 
@@ -305,6 +307,8 @@ void loop() {
   Serial.print(moisture);
   Serial.print(" breath ");
   Serial.print(breath);
+  Serial.print(" name ");
+  Serial.print(NAMES[level]);
   Serial.println();
 
   smooth += (cm - smooth) * 0.35;
