@@ -88,6 +88,23 @@ An Arduino Nano with an HC-SR04 ultrasonic sensor, a capacitive moisture sensor 
 
 Keep RX0, TX1 and RST empty: a wire there stops uploads. The hand-drawn version is `design-wiring.jpg` (its buzzer + and − are swapped; the table is right).
 
+### How to run it
+
+1. Open `bench/sensor_prototype/sensor_prototype.ino` in the Arduino IDE. It needs the **U8g2** library.
+2. **Tools → Board → Arduino Nano**, **Tools → Processor → ATmega328P (Old Bootloader)**, and pick the Nano's port.
+3. Upload. All three LEDs light for about a second and the screen says "hands off...": keep away from the breath probe while it learns its baseline.
+4. Open the Serial Monitor at **9600**. Each line reads like `cm 42.5 ping 42.5 moisture 481 breath 0 name deserter`.
+5. Close the Serial Monitor before opening `bench.html`; only one program can hold the port.
+
+What you should see:
+
+| Screen badge | When | LEDs | Sound |
+|---|---|---|---|
+| DEVOTED | under 12 cm and breath over 18 | blue | silent |
+| DESERTER | close without breath, or 12–50 cm | white | a beep every 2 s |
+| DESERTER | 50–150 cm | red flashing | siren that speeds up (stops after 60 s) |
+| NOBODY | past 150 cm for 5 s | off | silent; one chirp when someone arrives |
+
 ## State Table
 
 Rows are checked top to bottom, and the first one true for its whole hold wins.
