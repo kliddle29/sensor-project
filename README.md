@@ -74,6 +74,25 @@ Rows are checked top to bottom, and the first one true for its whole hold wins.
 | deserter | 49, 48, 46 cm | 50 | 5 | 2 s | the word DESERTER on the OLED, with the red LED flashing and the siren | D7 red flashes; D4 siren speeds up; OLED prints DESERTER | For them: it tells you, out loud, that it noticed you drifting. To them: it calls stepping back to talk to a friend desertion, and sirens at you for it. | @kliddle29 |
 | nobody | 213.9, 214.8, 213.2 cm (empty table, Nov 2, before the rewire) | 150 | 10 | 5 s | the screen goes blank but for one blinking dot | D5, D6, D7 off; buzzer silent; OLED blank but for a dot every 5 s | For them: it rests instead of shouting at an empty room. To them: it can't tell someone who left from someone standing quietly just past 150 cm. | @kliddle29 @BrysonAI30 |
 
+## Break log
+
+What broke, and what we changed because of it. Threshold changes go here too.
+
+| Date | Commit | What broke | What changed |
+|---|---|---|---|
+| 2026-10-29 | `6496e7c` | The page read nothing: the sketch was at 9600, the page at 115200 | `bench/sense-serial.js` reads at 9600 |
+| 2026-10-29 | `52a1141` | A loose OLED wire froze the whole Nano; the moisture sensor read 0 on 3.3 V | Added a Wire timeout; moved the moisture sensor to 5V; added breath, LEDs, buzzer and a second screen |
+| 2026-10-29 | `1b38a15` | Too easy to stay quiet from across the desk | Breath line 10 → 30; blue under 12 cm, white 12–50, red past 50 |
+| 2026-10-29 | `220d29f` | It stayed quiet from one sensor alone | Quiet now needs breath **and** under 12 cm |
+| 2026-10-29 | `eeca326` | The breath screen stayed black on D2/D3 | Breath screen to A1/A2, distance screen to D11/D12 (which made it slow) |
+| 2026-10-30 | `e7d0cb1` | A breath of 30 was too hard to reach | Breath line 30 → 25 |
+| 2026-11-02 | `5a58b36` | A commit on protected `main` couldn't be pushed and included `.DS_Store` | Moved the edits to a branch; added `.gitignore` |
+| 2026-11-03 | `50998a2` | Two software-I2C screens slowed the Nano to about 1 reading a second | One OLED back on A4/A5 with distance and breath together |
+| 2026-11-06 | `e1fc065` | The distance jumped: up to 90% of pings missed and counted as 400 cm | Misses ignored until 5 in a row, median of 3 drops spikes; rewired the HC-SR04 |
+| 2026-11-06 | `6bd9713` | The sketch still used the old four levels, not the charter's names | Rewrote it around devoted / deserter / nobody |
+| 2026-11-06 | `895784d` | That screen went blank most of the time; breath 25 was too hard to reach | Brought back the one-OLED screen; breath line 25 → 18 |
+| 2026-11-06 | `1d2d7ff` | The screen said CHILL / WARN, not the charter's names, and nobody sirened | Badge shows DEVOTED / DESERTER / NOBODY; nobody is quiet; only red flashes during the siren |
+
 ## Credits 
 - Kenzo Liddle- HC-SR04 (Near)
 - Bryson England- HC-SR04 (present)
