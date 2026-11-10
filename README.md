@@ -74,6 +74,15 @@ Rows are checked top to bottom, and the first one true for its whole hold wins.
 | deserter | 49, 48, 46 cm | 50 | 5 | 2 s | the word DESERTER on the OLED, with the red LED flashing and the siren | D7 red flashes; D4 siren speeds up; OLED prints DESERTER | For them: it tells you, out loud, that it noticed you drifting. To them: it calls stepping back to talk to a friend desertion, and sirens at you for it. | @kliddle29 |
 | nobody | 213.9, 214.8, 213.2 cm (empty table, Nov 2, before the rewire) | 150 | 10 | 5 s | the screen goes blank but for one blinking dot | D5, D6, D7 off; buzzer silent; OLED blank but for a dot every 5 s | For them: it rests instead of shouting at an empty room. To them: it can't tell someone who left from someone standing quietly just past 150 cm. | @kliddle29 @BrysonAI30 |
 
+## For them, to them
+
+- **For them:** it notices you and says so, out loud and on the screen, the moment you drift away, so you always know where you stand with it.
+- **To them:** it only calls you devoted if you lean in close and breathe on it, so anyone who can't, like someone with asthma, in a mask, or in a wheelchair, is named a deserter.
+
+## Lineage
+
+- **LAUREN** (Lauren Lee McCarthy, 2017): an artist acts as a live smart speaker in a stranger's house, watching through cameras to serve them. Ours turns that around: it watches you to make you serve it. [See the project](https://get-lauren.net/LAUREN)
+
 ## Break log
 
 What broke, and what we changed because of it. Threshold changes go here too.
