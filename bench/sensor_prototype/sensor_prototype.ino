@@ -220,7 +220,7 @@ void drawHeader() {
   // Rows 0-15, the yellow strip: level badge left, readings per second right.
   const char *labels[] = {"DEVOTED", "DESERTER", "DESERTER", "NOBODY"};
   const char *label = labels[level];
-  oled.setFont(u8g2_font_7x13B_tr);
+  oled.setFont(u8g2_font_6x12_tr);
   int w = oled.getStrWidth(label) + 8;
   if (level == WARN) {             // the siren level: solid badge
     oled.drawRBox(0, 1, w, 13, 3);
@@ -262,8 +262,12 @@ void drawBreath(int moisture, int breath, unsigned long now) {
   // reading, and whether a breath still counts.
   char buf[22];
   oled.setFont(u8g2_font_6x12_tr);
-  snprintf(buf, sizeof buf, "breath %d / %d", breath, BREATH_DELTA);
-  oled.drawStr(0, 52, buf);
+  // A bar that fills as breath climbs toward the line, with the line marked.
+  int fill = constrain(breath, 0, BREATH_DELTA * 2) * 80 / (BREATH_DELTA * 2);
+  oled.drawFrame(0, 44, 82, 8);
+  oled.drawBox(1, 45, fill, 6);
+  oled.drawVLine(41, 42, 12);      // the breath line sits halfway
+  oled.drawStr(88, 52, "breath");
   oled.drawStr(0, 63, breathingNow(now) ? "BREATHING" : "no breath");
   snprintf(buf, sizeof buf, "raw %d", moisture);
   oled.drawStr(127 - oled.getStrWidth(buf), 63, buf);
