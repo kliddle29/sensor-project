@@ -68,6 +68,12 @@ The instrument is MediaPipe Face Landmarker, pinned to version 1.1.1, the same o
 
 An Arduino Nano with an HC-SR04 ultrasonic sensor, a capacitive moisture sensor used as a breath probe, one 0.96 in OLED, a buzzer and three LEDs. The sketch is `bench/sensor_prototype/sensor_prototype.ino`.
 
+### Photos
+
+| The build | The design | The wiring, by hand |
+|---|---|---|
+| ![The working build](bench/img/sensor-prototype-build.jpg) | ![design.jpg](design.jpg) | ![design-wiring.jpg](design-wiring.jpg) |
+
 ### Wiring
 
 | Part | Pin | Nano |
