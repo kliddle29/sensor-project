@@ -105,6 +105,22 @@ What you should see:
 | DESERTER | 50–150 cm | red flashing | siren that speeds up (stops after 60 s) |
 | NOBODY | past 150 cm for 5 s | off | silent; one chirp when someone arrives |
 
+### Troubleshooting
+
+Problems we actually hit, and what fixed them.
+
+| What you see | Why | Fix |
+|---|---|---|
+| Upload stops at "attempt 1 of 10: not in sync" | Wrong bootloader setting, or a wire on RX0 / TX1 / RST | Tools → Processor → **ATmega328P (Old Bootloader)**; unplug the parts and try again; replug the USB cable if it hangs |
+| Upload succeeds but nothing changed | The IDE uploaded another copy of the sketch | Open the sketch from this repo; check the top comment matches |
+| Serial Monitor shows garbage | Wrong speed | Set it to **9600** |
+| Screen blank, the whole Nano frozen | A loose OLED wire stalled the I2C bus | Reseat SDA → A4 and SCL → A5; the sketch's Wire timeout keeps the rest running |
+| `moisture` reads 0 | The probe is on 3.3 V | Move its VCC to 5V |
+| `cm` stuck at one small number (5.6, 8.4) | Something in front of the sensor's cone | Clear 30 cm in front and raise the sensor off the table (#30) |
+| Most pings read `ping 0.0` | Loose TRIG / ECHO / power wire | Push all four HC-SR04 wires in firmly |
+| White LED always on | Something under 12 cm, no breath | Same as above: clear the sensor's view (#53) |
+| Breath never reaches the line | Line too high for a real breath | Breathe from about 3 cm; the line is 18 (see the break log) |
+
 ## State Table
 
 Rows are checked top to bottom, and the first one true for its whole hold wins.
