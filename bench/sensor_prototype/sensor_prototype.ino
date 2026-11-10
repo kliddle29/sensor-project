@@ -249,12 +249,12 @@ void drawNumber(float cm) {
   if (cm >= 399.0) {
     strcpy(buf, "---");
   } else {
-    dtostrf(cm, 0, cm < 100 ? 1 : 0, buf);
+    dtostrf(cm / 100.0, 0, 2, buf);
   }
   oled.drawStr(0, 40, buf);
   int x = oled.getStrWidth(buf) + 2;
   oled.setFont(u8g2_font_5x8_tr);
-  oled.drawStr(x, 40, "cm");
+  oled.drawStr(x, 40, "m");
 }
 
 void drawBreath(int moisture, int breath, unsigned long now) {
@@ -265,10 +265,8 @@ void drawBreath(int moisture, int breath, unsigned long now) {
   snprintf(buf, sizeof buf, "breath %d / %d", breath, BREATH_DELTA);
   oled.drawStr(0, 52, buf);
   oled.drawStr(0, 63, breathingNow(now) ? "BREATHING" : "no breath");
-  // A bar for the distance, 0 to 200 cm, in place of the raw reading.
-  int d = constrain((int)smooth, 0, 200) * 56 / 200;
-  oled.drawFrame(70, 56, 58, 7);
-  oled.drawBox(71, 57, d, 5);
+  snprintf(buf, sizeof buf, "raw %d", moisture);
+  oled.drawStr(127 - oled.getStrWidth(buf), 63, buf);
 }
 
 void setup() {
