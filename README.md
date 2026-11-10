@@ -64,6 +64,69 @@ Nothing saves a frame or a landmark list. The model downloads once when you clic
 
 The instrument is MediaPipe Face Landmarker, pinned to version 1.1.1, the same one the Make a Face lab used.
 
+## Our build: Don't Leave
+
+An Arduino Nano with an HC-SR04 ultrasonic sensor, a capacitive moisture sensor used as a breath probe, one 0.96 in OLED, a buzzer and three LEDs. The sketch is `bench/sensor_prototype/sensor_prototype.ino`.
+
+### Photos
+
+| The build | The design | The wiring, by hand |
+|---|---|---|
+| ![The working build](bench/img/sensor-prototype-build.jpg) | ![design.jpg](design.jpg) | ![design-wiring.jpg](design-wiring.jpg) |
+
+### Wiring
+
+| Part | Pin | Nano |
+|---|---|---|
+| HC-SR04 | VCC / GND | 5V / GND |
+| | TRIG | D9 |
+| | ECHO | D10 |
+| OLED (SSD1306, I2C) | VCC / GND | 5V / GND |
+| | SDA | A4 |
+| | SCL | A5 |
+| Breath probe (capacitive moisture v2.0) | VCC / GND | **5V** / GND (it reads 0 on 3.3 V) |
+| | AOUT | A0 |
+| Buzzer | + / − | D4 / GND |
+| Blue LED | long leg through a resistor | D5 |
+| White LED | long leg through a resistor | D6 |
+| Red LED | long leg through a resistor | D7 |
+| LEDs | short legs | GND |
+
+Keep RX0, TX1 and RST empty: a wire there stops uploads. The hand-drawn version is `design-wiring.jpg` (its buzzer + and − are swapped; the table is right).
+
+### How to run it
+
+1. Open `bench/sensor_prototype/sensor_prototype.ino` in the Arduino IDE. It needs the **U8g2** library.
+2. **Tools → Board → Arduino Nano**, **Tools → Processor → ATmega328P (Old Bootloader)**, and pick the Nano's port.
+3. Upload. All three LEDs light for about a second and the screen says "hands off...": keep away from the breath probe while it learns its baseline.
+4. Open the Serial Monitor at **9600**. Each line reads like `cm 42.5 ping 42.5 moisture 481 breath 0 name deserter`.
+5. Close the Serial Monitor before opening `bench.html`; only one program can hold the port.
+
+What you should see:
+
+| Screen badge | When | LEDs | Sound |
+|---|---|---|---|
+| DEVOTED | under 12 cm and breath over 18 | blue | silent |
+| DESERTER | close without breath, or 12–50 cm | white | a beep every 2 s |
+| DESERTER | 50–150 cm | red flashing | siren that speeds up (stops after 60 s) |
+| NOBODY | past 150 cm for 5 s | off | silent; one chirp when someone arrives |
+
+### Troubleshooting
+
+Problems we actually hit, and what fixed them.
+
+| What you see | Why | Fix |
+|---|---|---|
+| Upload stops at "attempt 1 of 10: not in sync" | Wrong bootloader setting, or a wire on RX0 / TX1 / RST | Tools → Processor → **ATmega328P (Old Bootloader)**; unplug the parts and try again; replug the USB cable if it hangs |
+| Upload succeeds but nothing changed | The IDE uploaded another copy of the sketch | Open the sketch from this repo; check the top comment matches |
+| Serial Monitor shows garbage | Wrong speed | Set it to **9600** |
+| Screen blank, the whole Nano frozen | A loose OLED wire stalled the I2C bus | Reseat SDA → A4 and SCL → A5; the sketch's Wire timeout keeps the rest running |
+| `moisture` reads 0 | The probe is on 3.3 V | Move its VCC to 5V |
+| `cm` stuck at one small number (5.6, 8.4) | Something in front of the sensor's cone | Clear 30 cm in front and raise the sensor off the table (#30) |
+| Most pings read `ping 0.0` | Loose TRIG / ECHO / power wire | Push all four HC-SR04 wires in firmly |
+| White LED always on | Something under 12 cm, no breath | Same as above: clear the sensor's view (#53) |
+| Breath never reaches the line | Line too high for a real breath | Breathe from about 3 cm; the line is 18 (see the break log) |
+
 ## State Table
 
 Rows are checked top to bottom, and the first one true for its whole hold wins.
@@ -102,7 +165,10 @@ What broke, and what we changed because of it. Threshold changes go here too.
 | 2026-11-06 | `895784d` | That screen went blank most of the time; breath 25 was too hard to reach | Brought back the one-OLED screen; breath line 25 → 18 |
 | 2026-11-06 | `1d2d7ff` | The screen said CHILL / WARN, not the charter's names, and nobody sirened | Badge shows DEVOTED / DESERTER / NOBODY; nobody is quiet; only red flashes during the siren |
 
-## Credits 
-- Kenzo Liddle- HC-SR04 (Near)
-- Bryson England- HC-SR04 (present)
--Live: https://github.com/kliddle29/sensor-project.git
+## Credits
+
+- **Kenzo Liddle** (@kliddle29): the `near` signal and the **deserter** name; the charter's first draft and `design.jpg`
+- **Bryson England** (@BrysonAI30): the `present` signal and the **devoted** name; the breath probe, OLED and LED wiring
+- **Both:** the **nobody** name, the State Table and the hand-drawn `design-wiring.jpg`
+- Started from the class's `sensor-layer-starter` template; the OLED sketch began as its `oled_demo.ino`
+- Repo: https://github.com/kliddle29/sensor-project
