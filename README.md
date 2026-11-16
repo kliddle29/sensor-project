@@ -164,6 +164,7 @@ What broke, and what we changed because of it. Threshold changes go here too.
 | 2026-11-06 | `6bd9713` | The sketch still used the old four levels, not the charter's names | Rewrote it around devoted / deserter / nobody |
 | 2026-11-06 | `895784d` | That screen went blank most of the time; breath 25 was too hard to reach | Brought back the one-OLED screen; breath line 25 → 18 |
 | 2026-11-06 | `1d2d7ff` | The screen said CHILL / WARN, not the charter's names, and nobody sirened | Badge shows DEVOTED / DESERTER / NOBODY; nobody is quiet; only red flashes during the siren |
+| 2026-11-16 | `72a0132` | Swaying at the 50 cm line dropped the siren back to the white beep (found testing `updateLevel()` on a laptop) | Deserter GAP of 5: once red, it stays red until under 45 cm |
 
 ## Credits
 

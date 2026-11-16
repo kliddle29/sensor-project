@@ -40,6 +40,7 @@ const int LED_RED = 7;
 // change in the README break log. ----------------------------------------------
 const float FADE_CM = 12.0;      // past this, or with no breath: blue -> white
 const float WARN_CM = 50.0;      // past this: white -> red, and the siren starts
+const float WARN_GAP = 5.0;      // once red, it stays red until under WARN_CM - WARN_GAP (the State Table's GAP)
 const float ALARM_CM = 150.0;    // past this: nobody (the browser's "present" line)
 const int BREATH_DELTA = 18;     // how far "breath" must rise to count as a breath
 const int BREATH_GAP = 3;        // once over the line, breath may dip this far and still count
@@ -170,9 +171,14 @@ void updateLevel(float cm, unsigned long now) {
   // Only breath AND closeness together keep it chill (and silent). Missing
   // either one is at least FADING; past that, the further away, the worse.
   bool breathedRecently = breathingNow(now);
+  // The deserter line has a GAP: once someone is red, or on their way there,
+  // they have to come WARN_GAP closer to go back, so swaying at 50 cm doesn't
+  // flip between the white beep and the siren.
+  bool onRedSide = level == WARN || candidate == WARN;
+  float warnLine = onRedSide ? WARN_CM - WARN_GAP : WARN_CM;
   uint8_t want;
   if (breathedRecently && cm < FADE_CM) want = CHILL;
-  else if (cm < WARN_CM) want = FADING;
+  else if (cm < warnLine) want = FADING;
   else if (cm < ALARM_CM) want = WARN;
   else want = ALARM;
 
