@@ -71,9 +71,9 @@ Rows are checked top to bottom, and the first one true for its whole hold wins.
 
 An Arduino Nano with an HC-SR04 ultrasonic sensor, a capacitive moisture sensor used as a breath probe, one 0.96 in OLED, a buzzer and three LEDs. The sketch is `bench/sensor_prototype/sensor_prototype.ino`.
 
-| The build (Oct 29, when it still had two screens) | The design | The wiring, by hand |
+| The piece, Nov 16 | The design | The wiring, by hand |
 |---|---|---|
-| ![The working build](bench/img/sensor-prototype-build.jpg) | ![design.jpg](design.jpg) | ![design-wiring.jpg](design-wiring.jpg) |
+| ![The piece on Nov 16: the breath probe, three LEDs, one OLED and the HC-SR04 on the breadboard with the Nano](bench/img/finished-piece.jpg) | ![design.jpg](design.jpg) | ![design-wiring.jpg](design-wiring.jpg) |
 
 ### Wiring
 
