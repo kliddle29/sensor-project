@@ -1,76 +1,77 @@
-# Sensor Layer starter
+# Don't Leave
 
-Computer Coding Studio, fall 2026. The camera, the model, one worked signal and a fake sensor, so your pair starts from a piece that already runs.
+Kenzo Liddle and Bryson England · Computer Coding Studio, fall 2026 · v1.0
 
-**Live:** https://flyinthelyceum.github.io/sensor-layer-starter/ (click Start the camera; press D, B, V)
+An Arduino Nano watches how close you stand and whether you breathe on it, then calls you **devoted**, **deserter** or **nobody**, and acts on the name.
 
-## Make it yours
+## The charter
 
-1. Click **Use this template**, then **Create a new repository**, under one partner's account. Add the other partner as a collaborator (Settings, Collaborators).
-2. Both partners clone it, open it in VS Code, and run it with a local server. Live Server works, or in the terminal: `python3 -m http.server`, then open `http://localhost:8000`. Opening `index.html` straight from the Finder will not reach the camera.
-3. Turn on GitHub Pages: Settings, Pages, branch `main`, folder `/ (root)`. That address is the live URL you submit.
+### It sees
 
-## The files
+| Reading | What it reads |
+|---|---|
+| `cm` | nobody: 213.9, 214.8, 213.2 (empty table, Nov 2) · at the 50 cm edge: 49, 48, 46 · leaning in: 10, 12, 14 · no echo prints `ping 0.0`, and after 5 in a row `cm` reads 400 |
+| `breath` | nobody: 4–7 idle noise (Oct 29), −1 to 0 (Nov 10, `bench/DIAGNOSTICS.md`) · a light breath: 19–23 · a hard breath: 30+ |
 
-| File | Job | Who edits it |
+### It calls you
+
+| Name | Rule | Hold |
 |---|---|---|
-| `table.js` | Your State Table, row for row: the signals, the states, the rules, the holds | both of you, first |
-| `sense.js` | Reads the camera, turns readings into signals, applies the table, writes `window.sense` | each partner, your own signal |
-| `piece.js` | Reads `window.sense` every frame and answers | both of you |
-| `fake-sense.js` | Writes the same object with no camera: number keys set the state, the mouse sets the signals | only if your signal names change |
-| `index.html` | Loads them in order | rarely |
+| devoted | `breath` over 18 **and** `cm` under 12 | breath has to stay up for 3 s (it may dip 3 between breaths); then it keeps counting for 5 s after you stop |
+| deserter | `cm` 50 to 150 (red), or closer than 50 with no breath (white) | 2 s before red; once red, it stays red until you come under 45 cm |
+| nobody | `cm` over 150 | 5 s |
 
-## The object
+Rows are checked top to bottom. Until a new name has held for its whole hold, it keeps the name it has.
 
-```js
-window.sense = {
-  state: 'here',                          // one word from your State Table
-  signals: { present: 0.98, open: 0.02 }, // each a number from 0 to 1
-  since: 184203.5                         // performance.now() when this state began
-};
-```
+### It does
 
-`piece.js` reads this and nothing else. It never touches the camera. That is why the piece keeps running on `fake-sense.js` when no camera is there, and why a scene you build in November can run off the sensor you build now.
+| Name | Action |
+|---|---|
+| devoted | blue LED (D5) steady, buzzer silent, the OLED says DEVOTED |
+| deserter, 50 to 150 cm | red LED (D7) flashes, a two-tone siren on D4 speeds up, the OLED says DESERTER. The siren gives up after 60 s; the red keeps flashing |
+| deserter, closer than 50 cm with no breath | white LED (D6), a short beep every 2 s, the OLED says DESERTER |
+| nobody | every LED off, silent, the OLED says NOBODY |
 
-## Adding your signal
+Under the name, the screen shows the distance and the breath number. Every reading also goes out over USB as a word and a number (`cm 42.5 ping 42.5 moisture 481 breath 0 name deserter`).
 
-1. Add its name to `signals` in `table.js`.
-2. Add a function with the same name to `SIGNALS` in `sense.js`. It gets one frame's result and returns a number from 0 to 1. There are two patterns in the comments there: one of the 52 named scores from the lab, or geometry from the 478 points.
-3. Use it in a rule in `table.js`. Press **D** to watch the number while you set the threshold. Thresholds that move go in your break log.
+### For them / To them
 
-## Keys
+| Name | For them | To them |
+|---|---|---|
+| devoted | it goes calm and quiet the moment you give it your breath | it only counts breath, so someone with asthma or in a mask can never be devoted |
+| deserter | it tells you, out loud, that it noticed you drifting | it calls stepping back to talk to a friend desertion, and sirens at you for it |
+| nobody | it rests instead of shouting at an empty room | it can't tell someone who left from someone standing quietly just past 150 cm |
 
-- **D**: the object `piece.js` reads, live
-- **B**: all 52 named scores, to find the one you measured in the Make a Face lab
-- **V**: the camera, small, in the corner
-- **1, 2, 3 …** and the **mouse**: drive the fake sensor before the camera starts
+### Who it names wrongly
 
-## When Start does nothing useful
+- Anyone who can't lean in under 12 cm and breathe on the probe (asthma, a mask, a wheelchair that can't get that close) can never be devoted. It calls them a deserter.
+- Someone who steps back to talk to a friend is a deserter.
+- Someone standing still just past 150 cm is nobody.
+- With two people, it only hears the nearer one (#56).
+- Soft, puffy clothing can swallow the echo. We haven't tested what it calls someone in a puffy jacket yet (#35).
 
-If the readout says the face library did not load, the school network is blocking `cdn.jsdelivr.net`. Press **D** and keep going on the fake sensor: the piece reads the same object either way. A new state you add to `table.js` gets a bright colour of its own in `piece.js` until you give it one.
+### The rest
 
-## Bench pairs: an Arduino instead of the camera
+- **It refuses:** to keep score of how long you stayed or how often you left. Nothing is saved or sent.
+- **Set aside:** Bryson's Don't Leave Me, which sirened at an empty room.
+- **Sits next to:** LAUREN (Lauren Lee McCarthy, 2017), and pushes back: LAUREN watched to serve the people in the house; this watches to make you serve it.
+- **The tension:** to see the whole piece you have to step back, and stepping back makes you a deserter.
 
-The bench track swaps the sense layer and nothing else. `piece.js` and `fake-sense.js` stay exactly as they are. The wiring, a photo of a working build and upload fixes are in `bench/README.md`.
+## State Table
 
-1. Build the circuit and flash `bench/sensor_prototype/sensor_prototype.ino` from the Arduino IDE (our Nano only uploads with **Tools → Processor → ATmega328P (Old Bootloader)**). It prints one line per reading, like `cm 42.5 ping 42.5 moisture 481 breath 0`. Check it in the IDE's Serial Monitor at **9600**, then **close the Serial Monitor**: only one program can hold the port.
-2. Open **`bench.html`** instead of `index.html`, on localhost in **Chrome**. It loads the bench table and the serial sense layer; nothing to edit.
-3. Click **Connect the Arduino** and pick the board. Press **D** to see the raw line and your signals.
-4. Your State Table lives in **`bench/table-bench.js`** (same format as `table.js`). Your signal is a function in `SIGNALS` in `bench/sense-serial.js`: it gets the latest reading (`{ cm: 42.5 }`) and returns 0 to 1. Add the sensor to the sketch's printed line, then its function, then its name in `bench/table-bench.js`.
+Rows are checked top to bottom, and the first one true for its whole hold wins.
 
-## What stays in the browser
+| Name | Readings at the edge | LINE | GAP | Hold | Visitor learns it by | Piece does | For them / To them | Owner |
+|---|---|---|---|---|---|---|---|---|
+| devoted | 24, 25, 27 breath, under 12 cm | 18 | 3 | 3 s | the word DEVOTED on the OLED, with the blue LED | D5 blue steady; buzzer silent; OLED prints DEVOTED | For them: it goes calm and quiet the moment you give it your breath. To them: it only counts breath, so someone with asthma or in a mask can never be devoted. | @BrysonAI30 |
+| deserter | 49, 48, 46 cm | 50 | 5 | 2 s | the word DESERTER on the OLED, with the red LED flashing and the siren | D7 red flashes; D4 siren speeds up; OLED prints DESERTER. Closer than 50 cm with no breath: D6 white and a beep every 2 s | For them: it tells you, out loud, that it noticed you drifting. To them: it calls stepping back to talk to a friend desertion, and sirens at you for it. | @kliddle29 |
+| nobody | 213.9, 214.8, 213.2 cm (empty table, Nov 2, before the rewire) | 150 | 10 (not in the sketch yet, #42) | 5 s | the word NOBODY on the OLED, every light off, silence | D5, D6, D7 off; buzzer silent; OLED prints NOBODY | For them: it rests instead of shouting at an empty room. To them: it can't tell someone who left from someone standing quietly just past 150 cm. | @kliddle29 @BrysonAI30 |
 
-Nothing saves a frame or a landmark list. The model downloads once when you click Start; after that the Network panel stays quiet. Keep it that way: no `localStorage` of readings, no uploads, no screenshots of the camera image in the repo. Screenshots for your break log show the piece or the D readout.
-
-The instrument is MediaPipe Face Landmarker, pinned to version 1.1.1, the same one the Make a Face lab used.
-
-## Our build: Don't Leave
+## The build
 
 An Arduino Nano with an HC-SR04 ultrasonic sensor, a capacitive moisture sensor used as a breath probe, one 0.96 in OLED, a buzzer and three LEDs. The sketch is `bench/sensor_prototype/sensor_prototype.ino`.
 
-### Photos
-
-| The build | The design | The wiring, by hand |
+| The build (Oct 29, when it still had two screens) | The design | The wiring, by hand |
 |---|---|---|
 | ![The working build](bench/img/sensor-prototype-build.jpg) | ![design.jpg](design.jpg) | ![design-wiring.jpg](design-wiring.jpg) |
 
@@ -94,24 +95,23 @@ An Arduino Nano with an HC-SR04 ultrasonic sensor, a capacitive moisture sensor 
 
 Keep RX0, TX1 and RST empty: a wire there stops uploads. The hand-drawn version is `design-wiring.jpg` (its buzzer + and − are swapped; the table is right).
 
-### How to run it
+## How to run it
+
+1. Plug the Nano into a power bank or a USB wall charger. The sketch starts on its own; no laptop, no Serial Monitor.
+2. Keep away from the breath probe while the screen says "hands off..." (about a second): it is learning the room.
+3. Leave 150 cm clear in front of the sensor, and let people walk up.
+
+### Uploading the sketch
 
 1. Open `bench/sensor_prototype/sensor_prototype.ino` in the Arduino IDE. It needs the **U8g2** library.
-2. **Tools → Board → Arduino Nano**, **Tools → Processor → ATmega328P (Old Bootloader)**, and pick the Nano's port.
-3. Upload. All three LEDs light for about a second and the screen says "hands off...": keep away from the breath probe while it learns its baseline.
-4. Open the Serial Monitor at **9600**. Each line reads like `cm 42.5 ping 42.5 moisture 481 breath 0 name deserter`.
-5. Close the Serial Monitor before opening `bench.html`; only one program can hold the port.
+2. **Tools → Board → Arduino Nano**, **Tools → Processor → ATmega328P (Old Bootloader)**, and pick the Nano's port. Upload.
+3. To watch the numbers, open the Serial Monitor at **9600**. Close it again before running the piece or opening `bench.html`: only one program can hold the port.
 
-What you should see:
+### In the browser (optional)
 
-| Screen badge | When | LEDs | Sound |
-|---|---|---|---|
-| DEVOTED | under 12 cm and breath over 18 | blue | silent |
-| DESERTER | close without breath, or 12–50 cm | white | a beep every 2 s |
-| DESERTER | 50–150 cm | red flashing | siren that speeds up (stops after 60 s) |
-| NOBODY | past 150 cm for 5 s | off | silent; one chirp when someone arrives |
+`bench.html` reads the same USB line and shows the same three names. Open it on localhost in **Chrome**, click **Connect the Arduino**, pick the board, and press **D** to see the raw line. The page saves nothing. The template's camera files (`index.html`, `sense.js`, `table.js`) are still in the repo, but Don't Leave doesn't use them.
 
-### Troubleshooting
+## Troubleshooting
 
 Problems we actually hit, and what fixed them.
 
@@ -126,21 +126,6 @@ Problems we actually hit, and what fixed them.
 | Most pings read `ping 0.0` | Loose TRIG / ECHO / power wire | Push all four HC-SR04 wires in firmly |
 | White LED always on | Something under 12 cm, no breath | Same as above: clear the sensor's view (#53) |
 | Breath never reaches the line | Line too high for a real breath | Breathe from about 3 cm; the line is 18 (see the break log) |
-
-## State Table
-
-Rows are checked top to bottom, and the first one true for its whole hold wins.
-
-| Name | Readings at the edge | LINE | GAP | Hold | Visitor learns it by | Piece does | For them / To them | Owner |
-|---|---|---|---|---|---|---|---|---|
-| devoted | 24, 25, 27 breath | 18 | 3 | 3 s | the word DEVOTED on the OLED, with the blue LED | D5 blue steady; buzzer silent; OLED prints DEVOTED | For them: it goes calm and quiet the moment you give it your breath. To them: it only counts breath, so someone with asthma or in a mask can never be devoted. | @BrysonAI30 |
-| deserter | 49, 48, 46 cm | 50 | 5 | 2 s | the word DESERTER on the OLED, with the red LED flashing and the siren | D7 red flashes; D4 siren speeds up; OLED prints DESERTER | For them: it tells you, out loud, that it noticed you drifting. To them: it calls stepping back to talk to a friend desertion, and sirens at you for it. | @kliddle29 |
-| nobody | 213.9, 214.8, 213.2 cm (empty table, Nov 2, before the rewire) | 150 | 10 | 5 s | the screen goes blank but for one blinking dot | D5, D6, D7 off; buzzer silent; OLED blank but for a dot every 5 s | For them: it rests instead of shouting at an empty room. To them: it can't tell someone who left from someone standing quietly just past 150 cm. | @kliddle29 @BrysonAI30 |
-
-## For them, to them
-
-- **For them:** it notices you and says so, out loud and on the screen, the moment you drift away, so you always know where you stand with it.
-- **To them:** it only calls you devoted if you lean in close and breathe on it, so anyone who can't, like someone with asthma, in a mask, or in a wheelchair, is named a deserter.
 
 ## Lineage
 
