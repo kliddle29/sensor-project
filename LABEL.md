@@ -6,4 +6,4 @@ Arduino Nano, ultrasonic sensor, moisture sensor, OLED screen, buzzer, LEDs, car
 
 It notices how close you stand and whether you breathe on it. It calls you devoted, deserter or nobody.
 
-Then it says the name on its screen and acts on it: blue and silent if you lean in and give it your breath, a beep or a siren that speeds up if you hold back or step away, and quiet once you're gone. It refuses to keep score of how long you stayed or how often you left.
+Then it says the name on its screen and acts on it: blue and silent if you lean in and give it your breath, a beep if you stay close without breathing, a siren that speeds up if you step back, and quiet once you're gone. It refuses to keep score of how long you stayed or how often you left.
