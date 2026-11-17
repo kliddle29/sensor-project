@@ -10,8 +10,9 @@
 // a siren that speeds up. Past 150 cm for 5 s: NOBODY, everything quiet.
 //
 // One screen. On the two-colour panels the top 16 rows are yellow: that strip
-// is the status (level badge, readings per second). The blue below is the data:
-// the distance, big, then the breath number and whether it counts.
+// is the status (whether a breath counts, readings per second). The blue below
+// is the name, big enough to read from 1 m away, then the distance and the
+// breath number small along the bottom.
 //
 // Wiring, Arduino Nano:
 //   HC-SR04  VCC -> 5V    GND -> GND    TRIG -> D9    ECHO -> D10
@@ -234,21 +235,11 @@ void updateOutputs(unsigned long now) {
   }
 }
 
-void drawHeader() {
-  // Rows 0-15, the yellow strip: level badge left, readings per second right.
-  const char *labels[] = {"DEVOTED", "DESERTER", "DESERTER", "NOBODY"};
-  const char *label = labels[level];
+void drawHeader(unsigned long now) {
+  // Rows 0-15, the yellow strip: whether a breath counts left, readings per
+  // second right.
   oled.setFont(u8g2_font_6x12_tr);
-  int w = oled.getStrWidth(label) + 8;
-  if (level == WARN) {             // the siren level: solid badge
-    oled.drawRBox(0, 1, w, 13, 3);
-    oled.setDrawColor(0);
-    oled.drawStr(4, 11, label);
-    oled.setDrawColor(1);
-  } else {
-    oled.drawRFrame(0, 1, w, 13, 3);
-    oled.drawStr(4, 11, label);
-  }
+  oled.drawStr(0, 11, breathingNow(now) ? "BREATHING" : "no breath");
   char buf[8];
   oled.setFont(u8g2_font_5x8_tr);
   itoa(rate, buf, 10);
@@ -260,30 +251,37 @@ void drawHeader() {
   else oled.drawCircle(127 - rw - 6, 7, 2);
 }
 
-void drawNumber(float cm) {
-  char buf[8];
-  oled.setFont(u8g2_font_logisoso22_tn);
+void drawName() {
+  // The name, as big as fits: in logisoso22, DESERTER is 120 of the 128
+  // pixels wide and 22 tall, so someone at 1 m can read it (#60).
+  const char *labels[] = {"DEVOTED", "DESERTER", "DESERTER", "NOBODY"};
+  const char *label = labels[level];
+  oled.setFont(u8g2_font_logisoso22_tr);
+  int x = (128 - oled.getStrWidth(label)) / 2;
+  if (level == WARN) {             // the siren level: the letters cut out of a solid bar
+    oled.drawBox(0, 17, 128, 34);
+    oled.setDrawColor(0);
+    oled.drawStr(x, 45, label);
+    oled.setDrawColor(1);
+  } else {
+    oled.drawStr(x, 45, label);
+  }
+}
+
+void drawReadings(float cm, int breath) {
+  // The bottom row, small: the distance left, the breath number against what
+  // it needs right.
+  char buf[16];
+  oled.setFont(u8g2_font_6x12_tr);
   // The smoothed value creeps toward 400 (no echo) but never reaches it.
   if (cm >= 399.0) {
     strcpy(buf, "---");
   } else {
     dtostrf(cm, 0, cm < 100 ? 1 : 0, buf);
   }
-  oled.drawStr(0, 40, buf);
-  int x = oled.getStrWidth(buf) + 2;
-  oled.setFont(u8g2_font_5x8_tr);
-  oled.drawStr(x, 40, "cm");
-}
-
-void drawBreath(int moisture, int breath, unsigned long now) {
-  // The two bottom rows: the breath number against what it needs, the raw
-  // reading, and whether a breath still counts.
-  char buf[22];
-  oled.setFont(u8g2_font_6x12_tr);
-  snprintf(buf, sizeof buf, "breath %d / %d", breath, BREATH_DELTA);
-  oled.drawStr(0, 52, buf);
-  oled.drawStr(0, 63, breathingNow(now) ? "BREATHING" : "no breath");
-  snprintf(buf, sizeof buf, "raw %d", moisture);
+  strcat(buf, " cm");
+  oled.drawStr(0, 63, buf);
+  snprintf(buf, sizeof buf, "breath %d/%d", breath, BREATH_DELTA);
   oled.drawStr(127 - oled.getStrWidth(buf), 63, buf);
 }
 
@@ -363,8 +361,8 @@ void loop() {
 
   oled.firstPage();
   do {
-    drawHeader();
-    drawNumber(smooth);
-    drawBreath(moisture, breath, now);
+    drawHeader(now);
+    drawName();
+    drawReadings(smooth, breath);
   } while (oled.nextPage());
 }
