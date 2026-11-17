@@ -32,7 +32,7 @@ Rows are checked top to bottom. Until a new name has held for its whole hold, it
 | deserter, closer than 50 cm with no breath | white LED (D6), a short beep every 2 s, the OLED says DESERTER |
 | nobody | every LED off, silent, the OLED says NOBODY |
 
-Under the name, the screen shows the distance and the breath number. Every reading also goes out over USB as a word and a number (`cm 42.5 ping 42.5 moisture 481 breath 0 name deserter`).
+The name fills the middle of the screen, big enough to read from 1 m. Under it, small, the screen shows the distance and the breath number. Every reading also goes out over USB as a word and a number (`cm 42.5 ping 42.5 moisture 481 breath 0 name deserter`).
 
 ### For them / To them
 
@@ -150,6 +150,7 @@ What broke, and what we changed because of it. Threshold changes go here too.
 | 2026-11-06 | `895784d` | That screen went blank most of the time; breath 25 was too hard to reach | Brought back the one-OLED screen; breath line 25 → 18 |
 | 2026-11-06 | `1d2d7ff` | The screen said CHILL / WARN, not the charter's names, and nobody sirened | Badge shows DEVOTED / DESERTER / NOBODY; nobody is quiet; only red flashes during the siren |
 | 2026-11-16 | `72a0132` | Swaying at the 50 cm line dropped the siren back to the white beep (found testing `updateLevel()` on a laptop) | Deserter GAP of 5: once red, it stays red until under 45 cm |
+| 2026-11-17 | `d27d4ae` | The name was about 1.5 mm tall in the top strip; a deserter at 50 to 150 cm couldn't read it | The name is the big text now (DESERTER fills 120 of 128 px); distance and breath go small along the bottom |
 
 ## Credits
 
