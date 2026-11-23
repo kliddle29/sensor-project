@@ -61,7 +61,7 @@ const uint8_t CHILL = 0;
 const uint8_t FADING = 1;
 const uint8_t WARN = 2;
 const uint8_t ALARM = 3;
-uint8_t level = CHILL;
+uint8_t level = ALARM;          // starts as nobody: the smoothed distance starts far away too
 const char *NAMES[] = {"devoted", "deserter", "deserter", "nobody"};  // for the serial line, same order as the badge
 
 float smooth = 200.0;            // the distance, smoothed; starts far away
