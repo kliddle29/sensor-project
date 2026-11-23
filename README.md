@@ -17,7 +17,7 @@ An Arduino Nano watches how close you stand and whether you breathe on it, then 
 
 | Name | Rule | Hold |
 |---|---|---|
-| devoted | `breath` over 18 **and** `cm` under 12 | breath has to stay up for 3 s (it may dip 3 between breaths); then it keeps counting for 5 s after you stop |
+| devoted | `breath` over 9 **and** `cm` under 12 | breath has to stay up for 3 s (it may dip 3 between breaths); then it keeps counting for 5 s after you stop |
 | deserter | `cm` 50 to 150 (red), or closer than 50 with no breath (white) | 2 s before red; once red, it stays red until you come under 45 cm |
 | nobody | `cm` over 150 | 5 s |
 
@@ -63,7 +63,7 @@ Rows are checked top to bottom, and the first one true for its whole hold wins.
 
 | Name | Readings at the edge | LINE | GAP | Hold | Visitor learns it by | Piece does | For them / To them | Owner |
 |---|---|---|---|---|---|---|---|---|
-| devoted | 24, 25, 27 breath, under 12 cm | 18 | 3 | 3 s | the word DEVOTED on the OLED, with the blue LED | D5 blue steady; buzzer silent; OLED prints DEVOTED | For them: it goes calm and quiet the moment you give it your breath. To them: it only counts breath, so someone with asthma or in a mask can never be devoted. | @BrysonAI30 |
+| devoted | 24, 25, 27 breath, under 12 cm | 9 | 3 | 3 s | the word DEVOTED on the OLED, with the blue LED | D5 blue steady; buzzer silent; OLED prints DEVOTED | For them: it goes calm and quiet the moment you give it your breath. To them: it only counts breath, so someone with asthma or in a mask can never be devoted. | @BrysonAI30 |
 | deserter | 49, 48, 46 cm | 50 | 5 | 2 s | the word DESERTER on the OLED, with the red LED flashing and the siren | D7 red flashes; D4 siren speeds up; OLED prints DESERTER. Closer than 50 cm with no breath: D6 white and a beep every 2 s | For them: it tells you, out loud, that it noticed you drifting. To them: it calls stepping back to talk to a friend desertion, and sirens at you for it. | @kliddle29 |
 | nobody | 213.9, 214.8, 213.2 cm (empty table, Nov 2, before the rewire) | 150 | 10 (not in the sketch yet, #42) | 5 s | the word NOBODY on the OLED, every light off, silence | D5, D6, D7 off; buzzer silent; OLED prints NOBODY | For them: it rests instead of shouting at an empty room. To them: it can't tell someone who left from someone standing quietly just past 150 cm. | @kliddle29 @BrysonAI30 |
 
@@ -125,7 +125,7 @@ Problems we actually hit, and what fixed them.
 | `cm` stuck at one small number (5.6, 8.4) | Something in front of the sensor's cone | Clear 30 cm in front and raise the sensor off the table (#30) |
 | Most pings read `ping 0.0` | Loose TRIG / ECHO / power wire | Push all four HC-SR04 wires in firmly |
 | White LED always on | Something under 12 cm, no breath | Same as above: clear the sensor's view (#53) |
-| Breath never reaches the line | Line too high for a real breath | Breathe from about 3 cm; the line is 18 (see the break log) |
+| Breath never reaches the line | Line too high for a real breath | Breathe from about 3 cm; the line is 9 (see the break log) |
 
 ## Lineage
 
@@ -151,6 +151,7 @@ What broke, and what we changed because of it. Threshold changes go here too.
 | 2026-11-06 | `1d2d7ff` | The screen said CHILL / WARN, not the charter's names, and nobody sirened | Badge shows DEVOTED / DESERTER / NOBODY; nobody is quiet; only red flashes during the siren |
 | 2026-11-16 | `72a0132` | Swaying at the 50 cm line dropped the siren back to the white beep (found testing `updateLevel()` on a laptop) | Deserter GAP of 5: once red, it stays red until under 45 cm |
 | 2026-11-17 | `d27d4ae` | The name was about 1.5 mm tall in the top strip; a deserter at 50 to 150 cm couldn't read it | The name is the big text now (DESERTER fills 120 of 128 px); distance and breath go small along the bottom |
+| 2026-11-23 | `0e410a3` | Challenge: halve your line | Devoted's breath line 18 → 9; still needs under 12 cm and 3 s |
 
 ## Credits
 

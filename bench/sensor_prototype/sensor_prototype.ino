@@ -43,7 +43,7 @@ const float FADE_CM = 12.0;      // past this, or with no breath: blue -> white
 const float WARN_CM = 50.0;      // past this: white -> red, and the siren starts
 const float WARN_GAP = 5.0;      // once red, it stays red until under WARN_CM - WARN_GAP (the State Table's GAP)
 const float ALARM_CM = 150.0;    // past this: nobody (the browser's "present" line)
-const int BREATH_DELTA = 18;     // how far "breath" must rise to count as a breath
+const int BREATH_DELTA = 9;      // how far "breath" must rise to count as a breath (halved from 18 for the challenge)
 const int BREATH_GAP = 3;        // once over the line, breath may dip this far and still count
 const unsigned long BREATH_HOLD_MS = 3000;   // breath must stay up this long to count (the charter's 3 s)
 const unsigned long BREATH_GRACE_MS = 5000;  // one breath keeps it chill this long
@@ -62,7 +62,7 @@ const uint8_t CHILL = 0;
 const uint8_t FADING = 1;
 const uint8_t WARN = 2;
 const uint8_t ALARM = 3;
-uint8_t level = CHILL;
+uint8_t level = ALARM;          // starts as nobody: the smoothed distance starts far away too
 const char *NAMES[] = {"devoted", "deserter", "deserter", "nobody"};  // for the serial line, same order as the badge
 
 float smooth = 200.0;            // the distance, smoothed; starts far away
