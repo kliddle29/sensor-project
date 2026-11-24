@@ -40,7 +40,7 @@ const int LED_RED = 7;
 // ---- Tuning: change these from what the Serial Monitor shows, and log every
 // change in the README break log. ----------------------------------------------
 const float FADE_CM = 12.0;      // past this, or with no breath: blue -> white
-const float WARN_CM = 50.0;      // past this: white -> red, and the siren starts
+const float WARN_CM = 25.0;      // past this: white -> red, and the siren starts
 const float WARN_GAP = 5.0;      // once red, it stays red until under WARN_CM - WARN_GAP (the State Table's GAP)
 const float ALARM_CM = 150.0;    // past this: nobody (the browser's "present" line)
 const int BREATH_DELTA = 9;      // how far "breath" must rise to count as a breath (halved from 18 for the challenge)
